@@ -148,4 +148,23 @@ def create_app(config_class=DevelopmentConfig):
         finally:
             conn.close()
 
+    @app.cli.command("create-demo-accounts")
+    @click.option("--admin-password", default=None, help="Custom password for demo admin account")
+    @click.option("--student-password", default=None, help="Custom password for demo student account")
+    def create_demo_accounts_command(admin_password, student_password):
+        """Idempotently provisions secure demo accounts (Admin & Student) with synthetic profile."""
+        from src.services.demo_service import provision_demo_accounts
+        conn = get_db_connection(app.config.get("STUDENT_DB_PATH"))
+        try:
+            res = provision_demo_accounts(
+                admin_password=admin_password,
+                student_password=student_password,
+                conn=conn
+            )
+            click.echo("Demo accounts provisioned successfully:")
+            click.echo(f"  - Admin:   username='{res['admin']['username']}', role='{res['admin']['role']}' ({res['admin']['action']})")
+            click.echo(f"  - Student: username='{res['student']['username']}', role='{res['student']['role']}', linked_id='{res['student']['linked_student_id']}' ({res['student']['action']})")
+        finally:
+            conn.close()
+
     return app

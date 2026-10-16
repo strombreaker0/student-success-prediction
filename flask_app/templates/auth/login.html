@@ -127,7 +127,54 @@
         </button>
       </form>
 
-      <div class="mt-4 pt-3 border-top border-subtle text-center">
+      <!-- Instant Demo Access Section -->
+      <div class="d-flex align-items-center my-3">
+        <hr class="flex-grow-1 border-subtle my-0">
+        <span class="px-2 text-muted text-uppercase" style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em;">Or Explore With Demo</span>
+        <hr class="flex-grow-1 border-subtle my-0">
+      </div>
+
+      <div class="d-flex flex-column gap-2 mb-3">
+        <!-- 1. Continue as Admin Demo -->
+        <form method="POST" action="{{ url_for('auth.demo_login', next=request.args.get('next')) }}" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="demo_role" value="admin">
+          <button type="submit" class="btn btn-outline-custom w-100 text-start p-2 d-flex align-items-center gap-3 demo-auth-card" id="btn-admin-demo">
+            <div class="demo-icon-box" style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--brand-indigo-subtle); color: var(--brand-indigo); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+              <i class="bi bi-shield-shaded"></i>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-semibold text-main" style="font-size: 13px;">Continue as Admin Demo</span>
+                <span class="badge bg-indigo-subtle text-indigo" style="font-size: 10px; font-weight: 600;">Faculty/Admin</span>
+              </div>
+              <div class="text-muted text-truncate" style="font-size: 11px;">Executive dashboard, cohort analytics & ML models</div>
+            </div>
+            <i class="bi bi-arrow-right text-muted small pe-1"></i>
+          </button>
+        </form>
+
+        <!-- 2. Continue as Student Demo -->
+        <form method="POST" action="{{ url_for('auth.demo_login', next=request.args.get('next')) }}" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="demo_role" value="student">
+          <button type="submit" class="btn btn-outline-custom w-100 text-start p-2 d-flex align-items-center gap-3 demo-auth-card demo-student-card" id="btn-student-demo">
+            <div class="demo-icon-box" style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--brand-teal-subtle); color: var(--brand-teal); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+              <i class="bi bi-person-badge"></i>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-semibold text-main" style="font-size: 13px;">Continue as Student Demo</span>
+                <span class="badge bg-teal-subtle text-teal" style="font-size: 10px; font-weight: 600;">Student</span>
+              </div>
+              <div class="text-muted text-truncate" style="font-size: 11px;">Personal transcript, risk factors & course progress</div>
+            </div>
+            <i class="bi bi-arrow-right text-muted small pe-1"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="mt-3 pt-3 border-top border-subtle text-center">
         <span class="text-muted small">Enrolled Student?</span>
         <a href="{{ url_for('auth.register') }}" class="small fw-semibold ms-1">Register Student Account</a>
       </div>

@@ -3,6 +3,7 @@ Authentication Blueprint Routes:
 Handles login, registration, logout, and profile/password management.
 """
 
+import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from src.services.auth_service import (
@@ -10,6 +11,11 @@ from src.services.auth_service import (
     is_rate_limited
 )
 from src.services.audit_service import log_audit_event
+from src.services.demo_service import (
+    get_demo_account_status,
+    DEMO_ADMIN_USERNAME, DEMO_ADMIN_PASSWORD_DEFAULT,
+    DEMO_STUDENT_USERNAME, DEMO_STUDENT_PASSWORD_DEFAULT
+)
 from src.db.connection import get_db_connection
 from flask_app.forms import LoginForm, RegistrationForm, ChangePasswordForm
 from flask_app.models import User
@@ -24,6 +30,8 @@ def login():
         return redirect(url_for('main.dashboard'))
 
     form = LoginForm()
+    demo_status = get_demo_account_status()
+
     if form.validate_on_submit():
         identifier = form.username_or_email.data.strip()
         pwd = form.password.data
@@ -31,7 +39,7 @@ def login():
         if is_rate_limited(identifier):
             flash("Too many failed login attempts. Please wait 15 minutes before trying again.", "danger")
             log_audit_event(identifier, "LOGIN_RATE_LIMITED", target="auth", ip_address=get_client_ip())
-            return render_template('auth/login.html', form=form)
+            return render_template('auth/login.html', form=form, demo_status=demo_status)
 
         auth_ok, auth_msg, user_dict = authenticate_user(identifier, pwd)
         if auth_ok and user_dict:
@@ -52,7 +60,85 @@ def login():
         log_audit_event(identifier, "LOGIN_FAILURE", target="auth", ip_address=get_client_ip())
         flash("Invalid username/email or password.", "danger")
 
-    return render_template('auth/login.html', form=form)
+    return render_template('auth/login.html', form=form, demo_status=demo_status)
+
+
+@auth_bp.route('/demo-login', methods=['POST'])
+def demo_login():
+    """
+    Direct, secure demo login endpoint with CSRF verification.
+    Authenticates through the real password hashing verification and Flask-Login session system.
+    Strictly forbids client-side role forgery or arbitrary session manipulation.
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    demo_role = request.form.get('demo_role', '').strip().lower()
+    if demo_role not in ('admin', 'student'):
+        flash("Invalid demo login request.", "danger")
+        return redirect(url_for('auth.login'))
+
+    if demo_role == 'admin':
+        username = os.environ.get('DEMO_ADMIN_USERNAME', DEMO_ADMIN_USERNAME).strip()
+        password = os.environ.get('DEMO_ADMIN_PASSWORD', DEMO_ADMIN_PASSWORD_DEFAULT).strip()
+    else:
+        username = os.environ.get('DEMO_STUDENT_USERNAME', DEMO_STUDENT_USERNAME).strip()
+        password = os.environ.get('DEMO_STUDENT_PASSWORD', DEMO_STUDENT_PASSWORD_DEFAULT).strip()
+
+    # Rate limiting protection
+    if is_rate_limited(username):
+        flash("Too many failed demo login attempts. Please wait 15 minutes before trying again.", "danger")
+        log_audit_event(username, "LOGIN_RATE_LIMITED", target="auth_demo", ip_address=get_client_ip())
+        return redirect(url_for('auth.login'))
+
+    # Verify that demo user exists in database
+    user_record = User.get_by_identifier(username)
+    if not user_record:
+        flash(
+            f"The {demo_role.capitalize()} Demo account '{username}' has not been provisioned yet. "
+            "Please run 'python create_demo_accounts.py' or 'flask create-demo-accounts'.",
+            "warning"
+        )
+        log_audit_event(username, "DEMO_UNPROVISIONED", target="auth_demo", ip_address=get_client_ip())
+        return redirect(url_for('auth.login'))
+
+    if not user_record.is_active:
+        flash("This demo account is currently deactivated.", "danger")
+        return redirect(url_for('auth.login'))
+
+    # Server-side role enforcement
+    if demo_role == 'admin' and not user_record.is_admin():
+        flash("Demo account configuration mismatch.", "danger")
+        return redirect(url_for('auth.login'))
+    if demo_role == 'student' and not user_record.is_student():
+        flash("Demo account configuration mismatch.", "danger")
+        return redirect(url_for('auth.login'))
+
+    # Authenticate via real credential verification against stored PBKDF2 hash
+    auth_ok, auth_msg, user_dict = authenticate_user(username, password)
+    if auth_ok and user_dict:
+        user = User.get_by_id(user_dict["id"])
+        if user and user.is_active:
+            # Regenerate session to protect against session fixation
+            session.clear()
+            login_user(user, remember=False)
+            log_audit_event(
+                user.username,
+                f"DEMO_LOGIN_SUCCESS_{demo_role.upper()}",
+                target="auth_demo",
+                user_id=user.id,
+                ip_address=get_client_ip()
+            )
+            flash(f"Signed in as Demo {demo_role.capitalize()} ({user.full_name}).", "success")
+
+            next_page = request.args.get('next')
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for('main.dashboard'))
+
+    log_audit_event(username, "DEMO_LOGIN_FAILURE", target="auth_demo", ip_address=get_client_ip())
+    flash("Authentication failed for demo credentials. Please re-run demo provisioning.", "danger")
+    return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
