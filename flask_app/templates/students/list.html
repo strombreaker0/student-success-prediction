@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Student Directory | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Student Directory</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">Student Management Directory</h3>
+    <p class="text-muted small mb-0">Cohort registry of {{ total_count }} student academic and behavioral profiles.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('students.bulk_upload') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-file-earmark-arrow-up"></i> Bulk CSV Upload
+    </a>
+    <a href="{{ url_for('students.export_csv', q=search_query, outcome=outcome_filter) }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-download"></i> Export Filtered CSV
+    </a>
+    <a href="{{ url_for('students.create') }}" class="btn btn-indigo btn-sm">
+      <i class="bi bi-person-plus-fill"></i> Add Student
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filtering Bar -->
+<div class="content-card mb-4">
+  <div class="card-body-custom py-3">
+    <form method="GET" action="{{ url_for('students.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text input-group-text-custom"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control-custom form-control-sm border-start-0" placeholder="Filter by Student ID (e.g. STU_1001)..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-4">
+        <select name="outcome" class="form-select-custom form-select-sm" onchange="this.form.submit()">
+          <option value="All" {% if outcome_filter == 'All' %}selected{% endif %}>All Exam Outcomes</option>
+          <option value="Passed" {% if outcome_filter == 'Passed' %}selected{% endif %}>Passed (Outcome = 1)</option>
+          <option value="Failed" {% if outcome_filter == 'Failed' %}selected{% endif %}>Failed (Outcome = 0)</option>
+          <option value="Pending / Unrecorded" {% if outcome_filter == 'Pending / Unrecorded' %}selected{% endif %}>In Progress / Pending</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-indigo btn-sm w-100">Apply Filters</button>
+        {% if search_query or outcome_filter != 'All' %}
+        <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom btn-sm">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Student Roster Table -->
+<div class="content-card">
+  {% if students %}
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Attendance</th>
+          <th>Study Hours</th>
+          <th>Prior Score</th>
+          <th>Assignment Rate</th>
+          <th>Tutoring</th>
+          <th>Sleep</th>
+          <th>Exam Outcome</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td class="fw-bold">
+            <a href="{{ url_for('students.detail', student_id=s.student_id) }}" class="text-primary text-decoration-none">
+              {{ s.student_id }}
+            </a>
+          </td>
+          <td>
+            {% if s.attendance_rate is not none %}
+              <span class="badge-status {% if s.attendance_rate < 75.0 %}badge-status-fail{% else %}badge-status-pass{% endif %}">
+                <i class="bi {% if s.attendance_rate < 75.0 %}bi-arrow-down-circle{% else %}bi-check-circle{% endif %}"></i>
+                {{ s.attendance_rate }}%
+              </span>
+            {% else %}
+              <span class="badge bg-secondary bg-opacity-15 text-secondary">Not Recorded</span>
+            {% endif %}
+          </td>
+          <td>{% if s.study_hours_per_week is not none %}{{ s.study_hours_per_week }} hrs/wk{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+          <td>{% if s.previous_scores is not none %}{{ s.previous_scores }}%{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+          <td>{% if s.assignment_completion_rate is not none %}{{ s.assignment_completion_rate }}%{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+          <td>{% if s.tutoring_sessions is not none %}{{ s.tutoring_sessions }}{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+          <td>{% if s.sleep_hours is not none %}{{ s.sleep_hours }} hrs{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+          <td>
+            {% if s.passed == 1 %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Passed</span>
+            {% elif s.passed == 0 %}
+            <span class="badge-status badge-status-fail"><i class="bi bi-x-circle"></i> Failed</span>
+            {% else %}
+            <span class="badge-status badge-status-pending"><i class="bi bi-hourglass-split"></i> Pending</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="{{ url_for('students.detail', student_id=s.student_id) }}" class="btn btn-outline-custom py-1" title="View Profile">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('predictions.predict', student_id=s.student_id) }}" class="btn btn-outline-custom py-1" title="Predict Outcome">
+                <i class="bi bi-cpu"></i>
+              </a>
+              <a href="{{ url_for('students.edit', student_id=s.student_id) }}" class="btn btn-outline-custom py-1" title="Edit Record">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% if current_user.is_admin() %}
+              <form action="{{ url_for('students.delete', student_id=s.student_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you certain you want to delete student {{ s.student_id }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-soft-danger py-1" title="Delete Student">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="card-body-custom py-3 border-top border-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <small class="text-muted">Showing page {{ page }} of {{ total_pages }} ({{ total_count }} total students)</small>
+    <nav>
+      <ul class="pagination pagination-sm m-0">
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('students.index', page=page-1, q=search_query, outcome=outcome_filter) }}">Previous</a>
+        </li>
+        <li class="page-item active">
+          <span class="page-link">{{ page }}</span>
+        </li>
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('students.index', page=page+1, q=search_query, outcome=outcome_filter) }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+    <div class="empty-state-title">No Students Found</div>
+    <p class="empty-state-desc">No student records matched your search query or outcome filter.</p>
+    <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom btn-sm">Clear All Filters</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Student Portal | {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-8 col-lg-6 text-center">
+    <div class="content-card p-5">
+      <div class="empty-state-icon text-warning mb-3">
+        <i class="bi bi-person-exclamation fs-1"></i>
+      </div>
+      <h4 class="fw-bold mb-2">Academic Profile Unlinked</h4>
+      <p class="text-muted mb-4">
+        Your user account (<b>@{{ user.username }}</b>) is registered, but it has not yet been linked to an official Student Record ID.
+      </p>
+      <div class="alert alert-secondary text-start small mb-4">
+        <i class="bi bi-info-circle me-1"></i> Please contact your course faculty advisor or department administrator to link your account to your student enrollment ID (e.g., <code>STU_1001</code>).
+      </div>
+      <div class="d-flex justify-content-center gap-3">
+        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-custom">View Account Profile</a>
+        <a href="{{ url_for('predictions.simulator') }}" class="btn btn-indigo">Launch Simulator</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

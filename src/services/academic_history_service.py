@@ -823,3 +823,8 @@ def generate_academic_transcript_pdf(student_id: str, requesting_user: dict | No
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+# Alias for backward compatibility
+get_full_student_transcript = get_student_academic_history
+

@@ -1,0 +1,42 @@
+# Render Infrastructure as Code Blueprint
+# Reference: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: student-success-prediction
+    runtime: python
+    region: oregon
+    plan: free # Change to starter if attaching persistent disk
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT wsgi:application"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_ENV
+        value: production
+      - key: SECURE_COOKIES
+        value: "1"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: STUDENT_DB_PATH
+        value: database/student_success.db
+      # Optional: set ADMIN_PASSWORD to auto-provision an initial admin account on first boot
+      # - key: ADMIN_USERNAME
+      #   value: admin
+      # - key: ADMIN_EMAIL
+      #   value: admin@institution.edu
+      # - key: ADMIN_PASSWORD
+      #   sync: false
+      # - key: ADMIN_NAME
+      #   value: System Administrator
+
+    # To persist SQLite database across Render restarts on Starter/Standard plan:
+    # 1. Change plan to 'starter'
+    # 2. Update STUDENT_DB_PATH to /var/data/student_success.db
+    # 3. Uncomment disk configuration below:
+    # disk:
+    #   name: sqlite-data
+    #   mountPath: /var/data
+    #   sizeGB: 1

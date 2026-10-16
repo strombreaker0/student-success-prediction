@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile & Account Security | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">My Account Profile</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-lg-5">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-person-badge text-primary"></i> Profile Dossier</h5>
+      </div>
+      <div class="card-body-custom">
+        <div class="text-center mb-4">
+          <div class="d-inline-flex p-3 rounded-circle mb-2" style="background: var(--brand-indigo-subtle); color: var(--brand-indigo);">
+            <i class="bi bi-person-circle fs-1"></i>
+          </div>
+          <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
+          <div class="text-muted small">@{{ user.username }}</div>
+          <div class="mt-2">
+            <span class="badge-role badge-role-{{ user.role }}">{{ user.role }}</span>
+            {% if user.linked_student_id %}
+            <a href="{{ url_for('students.detail', student_id=user.linked_student_id) }}" class="badge bg-secondary ms-1 text-decoration-none">
+              <i class="bi bi-link-45deg me-1"></i>Linked: {{ user.linked_student_id }}
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <ul class="list-group list-group-flush bg-transparent">
+          <li class="list-group-item bg-transparent text-main d-flex justify-content-between px-0 py-2 border-subtle">
+            <span class="text-muted"><i class="bi bi-envelope me-2"></i>Email Address</span>
+            <span class="fw-medium">{{ user.email }}</span>
+          </li>
+          <li class="list-group-item bg-transparent text-main d-flex justify-content-between px-0 py-2 border-subtle">
+            <span class="text-muted"><i class="bi bi-shield me-2"></i>System Role</span>
+            <span class="fw-medium text-capitalize">{{ user.role }}</span>
+          </li>
+          <li class="list-group-item bg-transparent text-main d-flex justify-content-between px-0 py-2 border-subtle">
+            <span class="text-muted"><i class="bi bi-clock-history me-2"></i>Last Active Session</span>
+            <span class="fw-medium">{{ user.last_login or 'Initial Session' }}</span>
+          </li>
+          <li class="list-group-item bg-transparent text-main d-flex justify-content-between px-0 py-2 border-subtle">
+            <span class="text-muted"><i class="bi bi-check-circle me-2"></i>Account Clearance</span>
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Active</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-key text-primary"></i> Update Security Password</h5>
+      </div>
+      <div class="card-body-custom">
+        <form method="POST" action="{{ url_for('auth.profile') }}" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="current_password">Current Password</label>
+            <div class="input-group">
+              {{ form.current_password(class="form-control-custom", placeholder="Enter your current password", id="curr-pass-field") }}
+              <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="curr-pass-field">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for error in form.current_password.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6">
+              <label class="form-label-custom" for="new_password">New Password</label>
+              <div class="input-group">
+                {{ form.new_password(class="form-control-custom", placeholder="Min. 8 chars, 1 digit", id="new-pass-field") }}
+                <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="new-pass-field">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              {% for error in form.new_password.errors %}
+                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="form-label-custom" for="confirm_new_password">Confirm New Password</label>
+              <div class="input-group">
+                {{ form.confirm_new_password(class="form-control-custom", placeholder="Repeat new password", id="conf-pass-field") }}
+                <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="conf-pass-field">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              {% for error in form.confirm_new_password.errors %}
+                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="alert alert-secondary py-2 px-3 small border-0 mb-4">
+            <i class="bi bi-info-circle me-1"></i> Passwords must be at least 8 characters long and include numbers and mixed-case letters.
+          </div>
+
+          <button type="submit" class="btn btn-indigo">
+            <i class="bi bi-lock me-1"></i> Change Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

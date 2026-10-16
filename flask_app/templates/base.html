@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
+  <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  
+  <!-- Modern Typography Fonts (Inter & Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Production SaaS Design Tokens & Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <div class="app-wrapper">
+    <!-- Deep Navy Authoritative Sidebar -->
+    <aside class="app-sidebar">
+      <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand">
+        <div class="brand-icon"><i class="bi bi-mortarboard-fill"></i></div>
+        <div class="brand-title">
+          <div>Student Success</div>
+          <div class="brand-subtitle">Educational Analytics</div>
+        </div>
+      </a>
+
+      <div class="sidebar-nav-container">
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-heading">Academic Analytics</li>
+          {% if current_user.can_manage_students() %}
+          <li class="nav-item">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-link-custom {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+              <i class="bi bi-grid-1x2-fill"></i> <span>Executive Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('students.index') }}" class="nav-link-custom {% if request.blueprint == 'students' and request.endpoint in ('students.index', 'students.create', 'students.edit') %}active{% endif %}">
+              <i class="bi bi-people-fill"></i> <span>Student Directory</span>
+            </a>
+          </li>
+          {% endif %}
+
+          {% if current_user.is_student() and current_user.linked_student_id %}
+          <li class="nav-item">
+            <a href="{{ url_for('students.detail', student_id=current_user.linked_student_id) }}" class="nav-link-custom {% if request.endpoint == 'students.detail' %}active{% endif %}">
+              <i class="bi bi-person-badge-fill"></i> <span>My Academic Profile</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li class="sidebar-nav-heading">Machine Learning</li>
+          <li class="nav-item">
+            <a href="{{ url_for('predictions.predict') }}" class="nav-link-custom {% if request.endpoint == 'predictions.predict' %}active{% endif %}">
+              <i class="bi bi-cpu-fill"></i> <span>Real-Time Prediction</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('predictions.simulator') }}" class="nav-link-custom {% if request.endpoint == 'predictions.simulator' %}active{% endif %}">
+              <i class="bi bi-sliders2"></i> <span>What-If Simulator</span>
+            </a>
+          </li>
+
+          {% if current_user.can_manage_students() %}
+          <li class="nav-item">
+            <a href="{{ url_for('predictions.batch') }}" class="nav-link-custom {% if request.endpoint == 'predictions.batch' %}active{% endif %}">
+              <i class="bi bi-file-earmark-spreadsheet-fill"></i> <span>Cohort Batch Screening</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li class="sidebar-nav-heading">Intervention & Governance</li>
+          <li class="nav-item">
+            <a href="{{ url_for('interventions.index') }}" class="nav-link-custom {% if request.blueprint == 'interventions' %}active{% endif %}">
+              <i class="bi bi-clipboard2-pulse-fill"></i> <span>Remedial Action Plans</span>
+            </a>
+          </li>
+
+          {% if current_user.can_manage_students() %}
+          <li class="nav-item">
+            <a href="{{ url_for('transparency.index') }}" class="nav-link-custom {% if request.endpoint == 'transparency.index' %}active{% endif %}">
+              <i class="bi bi-shield-check"></i> <span>Model Transparency</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li class="nav-item">
+            <a href="{{ url_for('transparency.about') }}" class="nav-link-custom {% if request.endpoint == 'transparency.about' %}active{% endif %}">
+              <i class="bi bi-diagram-3-fill"></i> <span>System Architecture</span>
+            </a>
+          </li>
+
+          {% if current_user.is_admin() %}
+          <li class="nav-item">
+            <a href="{{ url_for('audit.index') }}" class="nav-link-custom {% if request.blueprint == 'audit' %}active{% endif %}">
+              <i class="bi bi-journal-lock"></i> <span>Security Audit Trail</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <!-- User Profile & Sign Out Widget -->
+      <div class="sidebar-user">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="overflow-hidden">
+            <div class="fw-bold text-white text-truncate" style="font-size: 13.5px;">{{ current_user.full_name }}</div>
+            <div class="text-muted text-truncate" style="font-size: 11.5px;">@{{ current_user.username }}</div>
+          </div>
+          <span class="badge-role badge-role-{{ current_user.role }}">{{ current_user.role }}</span>
+        </div>
+        <form action="{{ url_for('auth.logout') }}" method="POST" class="m-0 p-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-custom w-100 py-1 text-danger border-secondary border-opacity-25" style="font-size: 12px;">
+            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+          </button>
+        </form>
+      </div>
+
+      <!-- Candidate Credentials Subtitle -->
+      <div class="sidebar-footer">
+        <div><b>{{ candidate_name }}</b></div>
+        <div>{{ candidate_class }} &bull; Roll: {{ candidate_roll }}</div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <div class="app-main">
+      <!-- Polished Topbar -->
+      <header class="app-topbar">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-outline-custom d-lg-none" id="sidebar-toggle" aria-label="Toggle Navigation">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          
+          <!-- Global Search Autocomplete Bar -->
+          <div class="position-relative d-none d-sm-block" style="width: 320px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="global-search-input" class="form-control-custom form-control-sm border-start-0" placeholder="Quick find student ID..." autocomplete="off">
+            </div>
+            <div id="search-results-dropdown" class="dropdown-menu shadow-lg w-100 mt-1" style="display: none; position: absolute; z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
+          </div>
+
+          <!-- Breadcrumbs Slot -->
+          {% block breadcrumbs %}{% endblock %}
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <!-- Dark / Light Theme Toggle -->
+          <button class="btn btn-outline-custom btn-sm" id="theme-toggle-btn" title="Toggle Theme (Dark / Light)" aria-label="Toggle Theme">
+            <i id="theme-icon" class="bi bi-moon-stars-fill"></i>
+          </button>
+
+          <!-- User Menu Dropdown -->
+          <div class="dropdown">
+            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-2">
+              <i class="bi bi-person-circle fs-6"></i>
+              <span class="d-none d-md-inline fw-semibold">{{ current_user.full_name }}</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Body -->
+      <main class="content-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+                <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} me-2 fs-5"></i>
+                <div class="flex-grow-1">{{ message }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </main>
+
+      <!-- Institutional Footer -->
+      <footer class="app-footer">
+        <div>
+          <b>{{ app_name }}</b> &bull; Field Project: <b>{{ candidate_name }}</b> ({{ candidate_class }}, Roll No: {{ candidate_roll }})
+        </div>
+        <div class="text-muted" style="font-size: 11.5px;">
+          Flask &bull; Bootstrap 5 &bull; SQLite &bull; Scikit-Learn Supervised Inference &bull; Role-Based Security
+        </div>
+      </footer>
+    </div>
+  </div>
+  {% else %}
+  <!-- Public Layout (Login, Registration, Error Pages) -->
+  <div class="min-vh-100 d-flex flex-column justify-content-between">
+    {% block public_content %}{% endblock %}
+
+    <footer class="p-3 text-center text-muted border-top border-secondary border-opacity-10" style="font-size: 12px; background: var(--bg-surface);">
+      <b>{{ app_name }}</b> &bull; Candidate: <b>{{ candidate_name }}</b> ({{ candidate_class }}, Roll: {{ candidate_roll }}) &bull; S.Y. B.Sc. Computer Science
+    </footer>
+  </div>
+  {% endif %}
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Application Client Script -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

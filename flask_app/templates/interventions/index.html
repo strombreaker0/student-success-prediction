@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Remedial Action Plans | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Interventions</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Action Plans</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">Remedial Interventions Tracker</h3>
+    <p class="text-muted small mb-0">Monitor and execute personalized pedagogical action plans for at-risk learners.</p>
+  </div>
+  {% if current_user.can_manage_students() %}
+  <div>
+    <button class="btn btn-indigo btn-sm" data-bs-toggle="collapse" data-bs-target="#newInterventionPanel">
+      <i class="bi bi-plus-circle me-1"></i> New Intervention Plan
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+{% if overdue_count > 0 %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between mb-4 border-warning border-opacity-50 shadow-sm">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-exclamation-triangle-fill fs-3 text-warning me-3"></i>
+    <div>
+      <div class="fw-bold">Overdue Follow-up Milestones ({{ overdue_count }})</div>
+      <small class="text-muted">Action plans that have exceeded their target review date without documented resolution.</small>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Add Intervention Form Collapse -->
+{% if current_user.can_manage_students() %}
+<div class="collapse mb-4" id="newInterventionPanel">
+  <div class="content-card">
+    <div class="card-header-custom">
+      <h5 class="card-title-custom"><i class="bi bi-plus-circle text-primary"></i> Create Remedial Action Plan</h5>
+    </div>
+    <div class="card-body-custom">
+      <form method="POST" action="{{ url_for('interventions.create') }}" class="row g-3">
+        {{ form.hidden_tag() }}
+        <div class="col-12 col-md-4">
+          <label class="form-label-custom" for="student_id">Target Student ID</label>
+          {{ form.student_id(class="form-control-custom", placeholder="e.g. STU_1001", required=true) }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label-custom" for="title">Action Plan Title</label>
+          {{ form.title(class="form-control-custom", placeholder="e.g. Mandatory Attendance Counseling", required=true) }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label-custom" for="follow_up_date">Target Follow-up Date (YYYY-MM-DD)</label>
+          {{ form.follow_up_date(class="form-control-custom", placeholder="2026-11-20") }}
+        </div>
+        <div class="col-12">
+          <label class="form-label-custom" for="description">Directives & Action Steps</label>
+          {{ form.description(class="form-control-custom", rows=2, placeholder="Specify counseling meetings, homework submission check-ins, or doubt-clearing sessions...") }}
+        </div>
+        <div class="col-12 text-end">
+          <button type="button" class="btn btn-outline-custom btn-sm me-2" data-bs-toggle="collapse" data-bs-target="#newInterventionPanel">Cancel</button>
+          <button type="submit" class="btn btn-indigo btn-sm">Save Remedial Action</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Filter & Search Toolbar -->
+<div class="content-card mb-4">
+  <div class="card-body-custom py-3">
+    <form method="GET" action="{{ url_for('interventions.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text input-group-text-custom"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control-custom form-control-sm border-start-0" placeholder="Search by student ID or title..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-4">
+        <select name="status" class="form-select-custom form-select-sm" onchange="this.form.submit()">
+          <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+          <option value="Open" {% if status_filter == 'Open' %}selected{% endif %}>Open</option>
+          <option value="In progress" {% if status_filter == 'In progress' %}selected{% endif %}>In Progress</option>
+          <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-indigo btn-sm w-100">Filter</button>
+        {% if search_query or status_filter %}
+        <a href="{{ url_for('interventions.index') }}" class="btn btn-outline-custom btn-sm">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Interventions Table -->
+<div class="content-card">
+  {% if interventions %}
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Student ID</th>
+          <th>Action Plan Title & Directives</th>
+          <th>Target Follow-up</th>
+          <th>Advisor</th>
+          <th class="text-end">Update Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in interventions %}
+        <tr>
+          <td>
+            {% if item.status == 'Open' %}
+            <span class="badge-status badge-status-pending"><i class="bi bi-clock"></i> Open</span>
+            {% elif item.status == 'In progress' %}
+            <span class="badge-status" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.2);"><i class="bi bi-arrow-repeat"></i> In Progress</span>
+            {% else %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Resolved</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('students.detail', student_id=item.student_id) }}" class="fw-bold text-primary text-decoration-none">
+              {{ item.student_id }}
+            </a>
+          </td>
+          <td>
+            <div class="fw-bold text-main">{{ item.title }}</div>
+            <small class="text-muted">{{ item.description or 'No notes provided' }}</small>
+          </td>
+          <td>
+            <span class="small fw-semibold">{{ item.follow_up_date or 'None set' }}</span>
+          </td>
+          <td>{{ item.created_by }}</td>
+          <td class="text-end">
+            {% if current_user.can_manage_students() %}
+            <form action="{{ url_for('interventions.update', intervention_id=item.id) }}" method="POST" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="status" class="form-select-custom py-1 px-2 d-inline-block w-auto" style="font-size: 12px;" onchange="this.form.submit()">
+                <option value="Open" {% if item.status == 'Open' %}selected{% endif %}>Open</option>
+                <option value="In progress" {% if item.status == 'In progress' %}selected{% endif %}>In progress</option>
+                <option value="Resolved" {% if item.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+              </select>
+            </form>
+            {% else %}
+            <span class="badge bg-secondary">Advisory</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i class="bi bi-clipboard2-check"></i></div>
+    <div class="empty-state-title">No Interventions Recorded</div>
+    <p class="empty-state-desc">No remedial action plans match the selected criteria.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

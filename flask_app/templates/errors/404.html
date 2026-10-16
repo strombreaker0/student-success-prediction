@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}404 Not Found | {{ app_name }}{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center align-items-center" style="min-height: 65vh;">
+  <div class="col-12 col-md-6 col-lg-5 text-center">
+    <div class="content-card p-5">
+      <div class="display-1 text-primary fw-bold mb-3">404</div>
+      <h4 class="fw-bold mb-2">Resource Not Found</h4>
+      <p class="text-muted mb-4">
+        The requested academic resource, student profile, or view could not be located in the system.
+      </p>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-indigo">
+        <i class="bi bi-arrow-left me-1"></i> Return to Sign In
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 65vh;">
+  <div class="col-12 col-md-6 col-lg-5 text-center">
+    <div class="content-card p-5">
+      <div class="display-1 text-primary fw-bold mb-3">404</div>
+      <h4 class="fw-bold mb-2">Resource Not Found</h4>
+      <p class="text-muted mb-4">
+        The requested student record or analytical endpoint could not be found.
+      </p>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-indigo">
+        <i class="bi bi-house-door me-1"></i> Return to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

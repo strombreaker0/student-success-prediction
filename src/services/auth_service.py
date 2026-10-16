@@ -184,10 +184,51 @@ def register_user(
             conn.close()
 
 
+_FAILED_ATTEMPTS = {}  # identifier -> list of timestamps (float)
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes
+
+
+def is_rate_limited(identifier: str) -> bool:
+    """Checks if an identifier has exceeded allowed failed login attempts."""
+    import time
+    key = str(identifier).strip().lower()
+    now = time.time()
+    if key in _FAILED_ATTEMPTS:
+        # Keep only attempts within window
+        valid_attempts = [t for t in _FAILED_ATTEMPTS[key] if now - t < LOGIN_LOCKOUT_SECONDS]
+        _FAILED_ATTEMPTS[key] = valid_attempts
+        return len(valid_attempts) >= MAX_LOGIN_ATTEMPTS
+    return False
+
+
+def record_failed_attempt(identifier: str):
+    """Records a failed attempt timestamp for brute-force protection."""
+    import time
+    key = str(identifier).strip().lower()
+    now = time.time()
+    if key not in _FAILED_ATTEMPTS:
+        _FAILED_ATTEMPTS[key] = []
+    _FAILED_ATTEMPTS[key].append(now)
+
+
+def clear_failed_attempts(identifier: str):
+    """Clears failed attempts upon successful login."""
+    key = str(identifier).strip().lower()
+    _FAILED_ATTEMPTS.pop(key, None)
+
+
 def authenticate_user(username_or_email: str, password: str, conn=None) -> tuple[bool, str, dict | None]:
     """Authenticates a user by username or email and validates password hash."""
+    from datetime import datetime, timezone
+
     if not username_or_email or not password:
         return False, "Please provide both identifier and password.", None
+
+    identifier = username_or_email.strip()
+
+    if is_rate_limited(identifier):
+        return False, "Too many failed login attempts. Please try again after 15 minutes.", None
 
     close_conn = False
     if conn is None:
@@ -195,23 +236,34 @@ def authenticate_user(username_or_email: str, password: str, conn=None) -> tuple
         close_conn = True
 
     try:
-        identifier = username_or_email.strip()
         cursor = conn.cursor()
         cursor.execute("""
-        SELECT id, username, email, password_hash, role, full_name, linked_student_id, is_active
+        SELECT id, username, email, password_hash, role, full_name, linked_student_id, is_active, last_login
         FROM users
         WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE;
         """, (identifier, identifier))
         row = cursor.fetchone()
 
         if not row:
+            record_failed_attempt(identifier)
             return False, "Invalid username/email or password.", None
 
         if not row["is_active"]:
             return False, "This account has been deactivated. Please contact an administrator.", None
 
         if not verify_password(row["password_hash"], password):
+            record_failed_attempt(identifier)
             return False, "Invalid username/email or password.", None
+
+        # Reset failed attempts on success
+        clear_failed_attempts(identifier)
+
+        now_str = datetime.now(timezone.utc).isoformat()
+        try:
+            cursor.execute("UPDATE users SET last_login = ? WHERE id = ?;", (now_str, row["id"]))
+            conn.commit()
+        except Exception as e:
+            logger.warning(f"Failed to update last_login: {e}")
 
         user_dict = {
             "id": row["id"],
@@ -220,7 +272,8 @@ def authenticate_user(username_or_email: str, password: str, conn=None) -> tuple
             "role": row["role"],
             "full_name": row["full_name"],
             "linked_student_id": row["linked_student_id"],
-            "is_active": row["is_active"]
+            "is_active": row["is_active"],
+            "last_login": row["last_login"] or now_str
         }
         return True, "Authentication successful.", user_dict
     finally:

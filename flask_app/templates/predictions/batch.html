@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Cohort Batch Screening | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Machine Learning</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Cohort Batch Screening</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">Cohort Batch Screening</h3>
+    <p class="text-muted small mb-0">Evaluate an entire class roster CSV to stratify student risk at institutional scale.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('predictions.predict') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-person me-1"></i> Individual Prediction
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-5">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-upload text-primary"></i> Upload Roster CSV</h5>
+      </div>
+      <div class="card-body-custom">
+        <form method="POST" enctype="multipart/form-data" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="file">Student Roster CSV File</label>
+            {{ form.file(class="form-control-custom") }}
+            {% for error in form.file.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="model_name">Evaluation Model Pipeline</label>
+            {{ form.model_name(class="form-select-custom") }}
+          </div>
+
+          <div class="form-check mb-4">
+            {{ form.save_to_database(class="form-check-input", id="save_db_check") }}
+            <label class="form-check-label small text-muted" for="save_db_check">
+              Commit batch evaluation records to persistent prediction history
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-indigo w-100 py-2">
+            <i class="bi bi-play-circle me-1"></i> Run Batch Screening
+          </button>
+        </form>
+
+        <div class="border-top border-subtle pt-3 mt-4">
+          <small class="text-muted">
+            <b>Required Columns:</b> <code>attendance_rate, study_hours_per_week, previous_scores, assignment_completion_rate, tutoring_sessions, sleep_hours, extracurricular, internet_access</code>.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-info-circle text-info"></i> Batch Screening Methodology</h5>
+      </div>
+      <div class="card-body-custom">
+        <p class="text-muted small">
+          Batch screening enables educators and academic committees to rapidly scan large cohorts and prioritize remedial action plans prior to examination periods.
+        </p>
+        <ul class="text-muted small ps-3 mb-4 d-flex flex-column gap-2">
+          <li>Automated stratification into <b>Low Risk</b>, <b>Moderate Risk</b>, and <b>High Risk</b> tiers.</li>
+          <li>Identifies students falling below the 75% attendance benchmark or 12 hours/week study threshold.</li>
+          <li>Outputs a sorted priority list for early-warning faculty intervention.</li>
+        </ul>
+        <div class="alert alert-info py-2 px-3 small border-0 mb-0 d-flex align-items-center">
+          <i class="bi bi-shield-check me-2 fs-5 text-info"></i>
+          <div>Role-Based Isolation: Only authorized faculty and administrators can upload cohort rosters.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if results %}
+<div class="content-card">
+  <div class="card-header-custom">
+    <h5 class="card-title-custom"><i class="bi bi-table text-primary"></i> Screening Results ({{ results|length }} Students Evaluated)</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Predicted Outcome</th>
+          <th>Pass Likelihood</th>
+          <th>Risk Stratification</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        <tr>
+          <td class="fw-bold">
+            {% if r.student_id %}
+            <a href="{{ url_for('students.detail', student_id=r.student_id) }}" class="text-primary text-decoration-none">
+              {{ r.student_id }}
+            </a>
+            {% else %}
+            <span class="text-muted">Anonymous</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.predicted_outcome == 1 %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Pass</span>
+            {% else %}
+            <span class="badge-status badge-status-fail"><i class="bi bi-x-circle"></i> Fail</span>
+            {% endif %}
+          </td>
+          <td class="fw-semibold">{{ r.pass_probability_pct }}%</td>
+          <td>
+            {% if r.risk_category == 'Low Risk' %}
+            <span class="badge-risk badge-risk-low"><i class="bi bi-shield-check"></i> Low Risk</span>
+            {% elif r.risk_category == 'Moderate Risk' %}
+            <span class="badge-risk badge-risk-moderate"><i class="bi bi-shield-exclamation"></i> Moderate Risk</span>
+            {% else %}
+            <span class="badge-risk badge-risk-high"><i class="bi bi-shield-x"></i> High Risk</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if r.student_id %}
+            <a href="{{ url_for('students.detail', student_id=r.student_id) }}" class="btn btn-outline-custom btn-sm py-1">
+              <i class="bi bi-eye me-1"></i> Profile
+            </a>
+            {% else %}
+            <span class="text-muted small">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

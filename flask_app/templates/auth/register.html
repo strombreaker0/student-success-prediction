@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Student Registration | {{ app_name }}{% endblock %}
+
+{% block public_content %}
+<div class="auth-split-wrapper">
+  <!-- Left Showcase Panel -->
+  <div class="auth-showcase-panel">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="brand-icon" style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold mb-0 text-white" style="font-size: 20px;">{{ app_name }}</h4>
+          <span class="text-white-50 small">Student Portal Self-Service</span>
+        </div>
+      </div>
+
+      <div class="my-5">
+        <h2 class="display-6 fw-bold text-white mb-3" style="line-height: 1.2;">
+          Access Your Academic Success Insights
+        </h2>
+        <p class="text-white-50 lead fs-6" style="max-width: 480px;">
+          Connect your institutional student profile to monitor coursework milestones, review predictive progress indicators, and collaborate on faculty remedial support plans.
+        </p>
+      </div>
+
+      <div class="mt-4">
+        <div class="feature-pill">
+          <div class="feature-pill-icon"><i class="bi bi-person-check-fill"></i></div>
+          <div>
+            <div class="fw-bold text-white">Student Data Privacy</div>
+            <div class="text-white-50 small">Strict role-based isolation ensures you only access your own academic records and predictive analytics.</div>
+          </div>
+        </div>
+
+        <div class="feature-pill">
+          <div class="feature-pill-icon"><i class="bi bi-sliders"></i></div>
+          <div>
+            <div class="fw-bold text-white">What-If Simulation Access</div>
+            <div class="text-white-50 small">Experiment with study habits, tutoring hours, and assignment completion to project your success likelihood.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidate Academic Credits -->
+    <div class="pt-4 border-top border-white border-opacity-10 text-white-50 small">
+      <div><b>Field Project:</b> {{ candidate_name }} &bull; {{ candidate_class }}</div>
+      <div>Roll No: {{ candidate_roll }} &bull; Department of Computer Science</div>
+    </div>
+  </div>
+
+  <!-- Right Form Panel -->
+  <div class="auth-form-panel">
+    <div class="auth-form-card" style="max-width: 520px;">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold fs-4 mb-1">Create Student Account</h3>
+          <p class="text-muted small mb-0">Register your student login credentials</p>
+        </div>
+        <button class="btn btn-outline-custom btn-sm theme-toggle-trigger" type="button" title="Toggle Dark/Light Mode">
+          <i class="bi bi-moon-stars-fill theme-icon-el"></i>
+        </button>
+      </div>
+
+      <div class="alert alert-info py-2 px-3 small border-0 mb-3 d-flex align-items-center">
+        <i class="bi bi-shield-check me-2 fs-5 text-info"></i>
+        <div>Public registration provisions <b>Student</b> accounts only. Faculty and Admin accounts are provisioned via administrative CLI.</div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show small py-2 mb-3" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-sm-6">
+            <label class="form-label-custom" for="username">Username</label>
+            {{ form.username(class="form-control-custom", placeholder="e.g. asmita1161", autofocus=true) }}
+            {% for error in form.username.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-sm-6">
+            <label class="form-label-custom" for="linked_student_id">Linked Student ID</label>
+            {{ form.linked_student_id(class="form-control-custom", placeholder="e.g. STU_1001") }}
+            {% for error in form.linked_student_id.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom" for="full_name">Full Legal Name</label>
+          {{ form.full_name(class="form-control-custom", placeholder="e.g. Asmita Kumbar") }}
+          {% for error in form.full_name.errors %}
+            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom" for="email">Institutional Email</label>
+          {{ form.email(class="form-control-custom", placeholder="student@institution.edu") }}
+          {% for error in form.email.errors %}
+            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6">
+            <label class="form-label-custom" for="password">Password</label>
+            <div class="input-group">
+              {{ form.password(class="form-control-custom", placeholder="Min 8 chars, 1 digit", id="reg-password-field") }}
+              <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="reg-password-field">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for error in form.password.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-sm-6">
+            <label class="form-label-custom" for="confirm_password">Confirm Password</label>
+            <div class="input-group">
+              {{ form.confirm_password(class="form-control-custom", placeholder="Repeat password", id="reg-confirm-password-field") }}
+              <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="reg-confirm-password-field">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for error in form.confirm_password.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-indigo w-100 py-2">
+          <i class="bi bi-check2-circle me-2"></i> Register Student Account
+        </button>
+      </form>
+
+      <div class="mt-4 pt-3 border-top border-subtle text-center">
+        <span class="text-muted small">Already have an account?</span>
+        <a href="{{ url_for('auth.login') }}" class="small fw-semibold ms-1">Sign In</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

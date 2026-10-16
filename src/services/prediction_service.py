@@ -128,6 +128,130 @@ def generate_interventions(features: dict, predicted_outcome: int, pass_prob: fl
     return interventions
 
 
+FEATURE_DISPLAY_NAMES = {
+    'attendance_rate': ('Attendance Rate', '%'),
+    'study_hours_per_week': ('Study Hours / Week', 'hrs/week'),
+    'previous_scores': ('Previous Exam Score', '%'),
+    'assignment_completion_rate': ('Assignment Completion Rate', '%'),
+    'tutoring_sessions': ('Tutoring Sessions Attended', 'sessions'),
+    'sleep_hours': ('Sleep Hours / Night', 'hrs/night'),
+    'extracurricular': ('Extracurricular Participation', ''),
+    'internet_access': ('Internet Access', '')
+}
+
+
+def compute_explainable_factors(raw_features: dict, scaled_arr, model_name: str, model, preprocessors) -> list[dict]:
+    """
+    Computes top 3 contributing factors in plain language using real model weights/importances.
+    Provides mathematically accurate, transparent decision support.
+    """
+    factors = []
+    scaler = preprocessors['scaler']
+    imputer = preprocessors['imputer']
+    means = dict(zip(FEATURE_COLS, scaler.mean_))
+    scales = dict(zip(FEATURE_COLS, scaler.scale_))
+
+    if hasattr(model, 'coef_'):
+        weights = dict(zip(FEATURE_COLS, model.coef_[0]))
+        contributions = []
+        for i, col in enumerate(FEATURE_COLS):
+            val = raw_features.get(col)
+            if val is None or pd.isna(val):
+                val = float(imputer.statistics_[i])
+            z_score = float(scaled_arr[0][i])
+            w = float(weights[col])
+            impact_score = w * z_score
+            contributions.append({
+                'feature': col,
+                'val': float(val),
+                'mean': float(means[col]),
+                'z_score': z_score,
+                'weight': w,
+                'impact_score': impact_score,
+                'abs_impact': abs(impact_score)
+            })
+
+        contributions.sort(key=lambda x: x['abs_impact'], reverse=True)
+        top3 = contributions[:3]
+
+        for item in top3:
+            col = item['feature']
+            val = item['val']
+            mean_val = item['mean']
+            name, unit = FEATURE_DISPLAY_NAMES.get(col, (col, ''))
+            unit_str = f" {unit}" if unit else ""
+            is_positive = item['impact_score'] > 0
+
+            if col in ('extracurricular', 'internet_access'):
+                status_str = "Active" if val >= 0.5 else "None"
+                if is_positive:
+                    desc = f"{name} is {status_str}, which positively supports exam success trajectory."
+                else:
+                    desc = f"{name} is {status_str}, slightly lowering overall academic support."
+            else:
+                if val >= mean_val:
+                    comp_str = f"above the cohort benchmark of {mean_val:.1f}{unit_str}"
+                else:
+                    comp_str = f"below the cohort benchmark of {mean_val:.1f}{unit_str}"
+
+                if is_positive:
+                    desc = f"{name} is {val:.1f}{unit_str} ({comp_str}), significantly boosting pass probability."
+                else:
+                    desc = f"{name} is {val:.1f}{unit_str} ({comp_str}), acting as a key contributor to academic risk."
+
+            factors.append({
+                "feature": col,
+                "feature_name": name,
+                "value": round(float(val), 2),
+                "benchmark": round(float(mean_val), 2),
+                "direction": "positive" if is_positive else "negative",
+                "impact_score": round(float(item['impact_score']), 4),
+                "description": desc
+            })
+    else:
+        importances = getattr(model, 'feature_importances_', [1.0/len(FEATURE_COLS)]*len(FEATURE_COLS))
+        contributions = []
+        for i, col in enumerate(FEATURE_COLS):
+            val = raw_features.get(col)
+            if val is None or pd.isna(val):
+                val = float(imputer.statistics_[i])
+            diff = float(val) - float(means[col])
+            imp = float(importances[i])
+            scale_val = float(scales[col]) if float(scales[col]) != 0 else 1.0
+            impact_score = imp * (diff / scale_val)
+            contributions.append({
+                'feature': col,
+                'val': float(val),
+                'mean': float(means[col]),
+                'importance': imp,
+                'impact_score': impact_score,
+                'abs_impact': abs(impact_score)
+            })
+        contributions.sort(key=lambda x: x['abs_impact'], reverse=True)
+        top3 = contributions[:3]
+
+        for item in top3:
+            col = item['feature']
+            val = item['val']
+            mean_val = item['mean']
+            name, unit = FEATURE_DISPLAY_NAMES.get(col, (col, ''))
+            unit_str = f" {unit}" if unit else ""
+            is_positive = item['impact_score'] >= 0
+            comp_str = "above" if val >= mean_val else "below"
+            desc = f"{name} is {val:.1f}{unit_str} ({comp_str} cohort average of {mean_val:.1f}{unit_str})."
+            factors.append({
+                "feature": col,
+                "feature_name": name,
+                "value": round(float(val), 2),
+                "benchmark": round(float(mean_val), 2),
+                "direction": "positive" if is_positive else "negative",
+                "impact_score": round(float(item['impact_score']), 4),
+                "description": desc
+            })
+
+    return factors
+
+
 def predict_student(
     student_data: dict,
     model_name: str = "Logistic Regression",
@@ -176,6 +300,7 @@ def predict_student(
 
     risk_category = determine_risk_category(pass_prob)
     interventions = generate_interventions(raw_features, pred, pass_prob)
+    top_factors = compute_explainable_factors(raw_features, scaled_arr, model_name, model, preprocessors)
 
     result = {
         "student_id": student_data.get("student_id"),
@@ -188,6 +313,8 @@ def predict_student(
         "fail_probability_pct": round(fail_prob * 100, 1),
         "risk_category": risk_category,
         "interventions": interventions,
+        "top_factors": top_factors,
+        "disclaimer": "Predictions support teacher judgment and are not final decisions.",
         "predicted_by": actor_username,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -205,8 +332,8 @@ def predict_student(
             INSERT INTO prediction_history (
                 student_id, model_name, predicted_outcome,
                 pass_probability, fail_probability, risk_category,
-                interventions_json, predicted_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                interventions_json, top_factors_json, predicted_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
             """, (
                 str(sid).strip().upper(),
                 model_name,
@@ -215,6 +342,7 @@ def predict_student(
                 round(fail_prob, 4),
                 risk_category,
                 json.dumps(interventions),
+                json.dumps(top_factors),
                 actor_username
             ))
             conn.commit()
@@ -240,7 +368,7 @@ def get_prediction_history(student_id: str = None, limit: int = 50, conn = None)
         if student_id:
             cursor.execute("""
             SELECT id, student_id, model_name, predicted_outcome, pass_probability,
-                   fail_probability, risk_category, interventions_json, predicted_by, created_at
+                   fail_probability, risk_category, interventions_json, top_factors_json, predicted_by, created_at
             FROM prediction_history
             WHERE student_id = ?
             ORDER BY created_at DESC
@@ -249,7 +377,7 @@ def get_prediction_history(student_id: str = None, limit: int = 50, conn = None)
         else:
             cursor.execute("""
             SELECT id, student_id, model_name, predicted_outcome, pass_probability,
-                   fail_probability, risk_category, interventions_json, predicted_by, created_at
+                   fail_probability, risk_category, interventions_json, top_factors_json, predicted_by, created_at
             FROM prediction_history
             ORDER BY created_at DESC
             LIMIT ?;
@@ -260,9 +388,13 @@ def get_prediction_history(student_id: str = None, limit: int = 50, conn = None)
         for r in rows:
             d = dict(r)
             try:
-                d["interventions"] = json.loads(d["interventions_json"])
+                d["interventions"] = json.loads(d["interventions_json"]) if d.get("interventions_json") else []
             except Exception:
                 d["interventions"] = []
+            try:
+                d["top_factors"] = json.loads(d["top_factors_json"]) if d.get("top_factors_json") else []
+            except Exception:
+                d["top_factors"] = []
             d["outcome_label"] = "Pass" if d["predicted_outcome"] == 1 else "Fail"
             d["pass_probability_pct"] = round(d["pass_probability"] * 100, 1)
             history.append(d)

@@ -6,8 +6,7 @@ Creates tables, applies schema constraints, and migrates initial student data fr
 import os
 import sys
 from src.db.connection import get_db_connection, get_db_path
-from src.db.schema import create_schema
-from src.db.migrate import migrate_csv_to_sqlite
+from src.db.init_app_db import ensure_db_initialized
 
 
 def init_database(db_path=None, csv_path=None):
@@ -18,22 +17,10 @@ def init_database(db_path=None, csv_path=None):
     path = get_db_path(db_path)
     print(f"[*] Target SQLite Database: {path}")
 
-    conn = get_db_connection(path)
-    try:
-        print("[*] Creating database schema & indexes...")
-        create_schema(conn)
-        print("[+] Schema initialized successfully.")
-
-        print("[*] Importing records from student_data.csv...")
-        res = migrate_csv_to_sqlite(csv_path=csv_path, conn=conn)
-        print(f"[+] Total rows in CSV:  {res['total_csv_rows']}")
-        print(f"[+] New rows inserted:  {res['inserted']}")
-        print(f"[+] Existing / Skipped: {res['skipped']}")
-        print(f"[+] Parsing errors:     {res['errors']}")
-        print(f"[+] Total in Database:  {res['total_in_db']}")
-        print("[+] Database initialization complete!")
-    finally:
-        conn.close()
+    res = ensure_db_initialized(db_path=path)
+    print(f"[+] Total students in Database: {res['students']}")
+    print(f"[+] Total users in Database:    {res['users']}")
+    print("[+] Database initialization complete!")
 
 
 if __name__ == "__main__":

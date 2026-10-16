@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Analytics Dashboard | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Executive Overview</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<!-- Executive Welcome Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h3 class="fw-bold fs-4 mb-0">Executive Analytics Dashboard</h3>
+      <span class="badge-role badge-role-{{ current_user.role }}">{{ current_user.role }}</span>
+    </div>
+    <p class="text-muted small mb-0">Cohort-wide supervised learning risk metrics, early-warning indicators, and pedagogical decision intelligence.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('predictions.predict') }}" class="btn btn-indigo btn-sm">
+      <i class="bi bi-cpu"></i> New Prediction
+    </a>
+    {% if current_user.can_manage_students() %}
+    <a href="{{ url_for('students.create') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-person-plus"></i> Add Student
+    </a>
+    <a href="{{ url_for('predictions.batch') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Batch Screening
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if metrics.total_students == 0 %}
+<div class="alert alert-info d-flex align-items-center justify-content-between p-3 mb-4 border-0 shadow-sm" style="background: rgba(14, 165, 233, 0.1);">
+  <div class="d-flex align-items-center gap-3">
+    <i class="bi bi-info-circle-fill fs-3 text-info"></i>
+    <div>
+      <div class="fw-bold">No Student Cohort Records Found</div>
+      <div class="small text-muted">Get started by creating your first student record or importing an institutional cohort CSV.</div>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('students.create') }}" class="btn btn-indigo btn-sm"><i class="bi bi-plus-lg me-1"></i> Add Student</a>
+    <a href="{{ url_for('students.bulk_upload') }}" class="btn btn-outline-custom btn-sm"><i class="bi bi-upload me-1"></i> Upload CSV</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Total Cohort</div>
+          <div class="stat-val">{{ metrics.total_students }}</div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>{{ metrics.passed_count }} Passed</span> &bull; 
+        <span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>{{ metrics.failed_count }} Failed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Cohort Pass Rate</div>
+          <div class="stat-val text-success">
+            {% if metrics.pass_rate is not none %}{{ metrics.pass_rate }}%{% else %}<span class="text-muted fs-4">N/A</span>{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="bi bi-award-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Empirical passing frequency</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Average Attendance</div>
+          <div class="stat-val text-info">
+            {% if metrics.avg_attendance is not none %}{{ metrics.avg_attendance }}%{% else %}<span class="text-muted fs-4">N/A</span>{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(6, 182, 212, 0.1); color: #0891b2;">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Institutional benchmark: 75.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Support Required</div>
+          <div class="stat-val text-warning">{{ metrics.support_needed_count }}</div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Attendance &lt; 75% or failing marks</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue Remedial Interventions Alert Widget -->
+{% if overdue_interventions %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between mb-4 border-warning border-opacity-50 shadow-sm">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-clock-history fs-3 me-3 text-warning"></i>
+    <div>
+      <div class="fw-bold">Overdue Remedial Interventions ({{ overdue_interventions|length }})</div>
+      <small class="text-muted">Target resolution date has passed. Faculty follow-up required.</small>
+    </div>
+  </div>
+  <a href="{{ url_for('interventions.index') }}" class="btn btn-warning btn-sm fw-semibold">
+    <i class="bi bi-arrow-right me-1"></i> Review Action Plans
+  </a>
+</div>
+{% endif %}
+
+<!-- Analytical Visualizers Section -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-5">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-pie-chart-fill text-primary"></i> Exam Outcome Distribution</h5>
+      </div>
+      <div class="card-body-custom d-flex flex-column align-items-center justify-content-center" style="min-height: 260px;">
+        <canvas id="outcomeChart" style="max-height: 230px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-bar-chart-fill text-teal" style="color: var(--brand-teal);"></i> Attendance Bracket vs. Pass Likelihood</h5>
+      </div>
+      <div class="card-body-custom" style="min-height: 260px;">
+        <canvas id="attendanceChart" style="max-height: 230px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Priority Roster: Students Needing Attention Panel -->
+<div class="content-card">
+  <div class="card-header-custom">
+    <div>
+      <h5 class="card-title-custom text-danger">
+        <i class="bi bi-shield-exclamation"></i> Priority Roster: Students Needing Attention
+      </h5>
+      <small class="text-muted">Highest-priority students ranked by lowest attendance and study deficits.</small>
+    </div>
+    <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-list-ul me-1"></i> Full Student Directory
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Attendance Rate</th>
+          <th>Weekly Study</th>
+          <th>Assignment Rate</th>
+          <th>Prior Score</th>
+          <th>Exam Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in needs_attention %}
+        <tr>
+          <td class="fw-bold">
+            <a href="{{ url_for('students.detail', student_id=s.student_id) }}" class="text-primary text-decoration-none">
+              {{ s.student_id }}
+            </a>
+          </td>
+          <td>
+            {% if s.attendance_rate is not none %}
+              <span class="badge-status {% if s.attendance_rate < 75.0 %}badge-status-fail{% else %}badge-status-pass{% endif %}">
+                <i class="bi {% if s.attendance_rate < 75.0 %}bi-arrow-down-circle{% else %}bi-check-circle{% endif %}"></i>
+                {{ s.attendance_rate }}%
+              </span>
+            {% else %}
+              <span class="badge bg-secondary bg-opacity-15 text-secondary">Not Recorded</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.study_hours_per_week is not none %}
+              {{ s.study_hours_per_week }} hrs/wk
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.assignment_completion_rate is not none %}
+              {{ s.assignment_completion_rate }}%
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.previous_scores is not none %}
+              {{ s.previous_scores }}%
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.passed == 1 %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Passed</span>
+            {% elif s.passed == 0 %}
+            <span class="badge-status badge-status-fail"><i class="bi bi-x-circle"></i> Failed</span>
+            {% else %}
+            <span class="badge-status badge-status-pending"><i class="bi bi-hourglass-split"></i> In Progress</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="{{ url_for('students.detail', student_id=s.student_id) }}" class="btn btn-outline-custom py-1" title="View Student Profile">
+                <i class="bi bi-eye"></i> Profile
+              </a>
+              <a href="{{ url_for('predictions.predict', student_id=s.student_id) }}" class="btn btn-indigo py-1" title="Run ML Risk Assessment">
+                <i class="bi bi-cpu"></i> Predict
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="bi bi-check2-circle text-success fs-2 d-block mb-2"></i>
+            <div class="fw-semibold">No students currently flagged as needing urgent academic intervention.</div>
+            <div class="small text-muted mt-1">All enrolled students meet the attendance benchmark or have passing coursework records.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  function getThemeColors() {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    return {
+      textColor: isDark ? "#94a3b8" : "#64748b",
+      gridColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"
+    };
+  }
+
+  let outcomeChart = null;
+  let attendanceChart = null;
+
+  function renderCharts() {
+    fetch('/api/chart-data')
+      .then(r => r.json())
+      .then(data => {
+        const colors = getThemeColors();
+
+        // 1. Outcome Doughnut Chart
+        const ctxOutcome = document.getElementById('outcomeChart');
+        if (ctxOutcome && data.outcomes) {
+          if (outcomeChart) outcomeChart.destroy();
+          const hasData = (data.outcomes.Passed + data.outcomes.Failed) > 0;
+          outcomeChart = new Chart(ctxOutcome, {
+            type: 'doughnut',
+            data: {
+              labels: hasData ? ['Passed', 'Failed'] : ['No Data Recorded'],
+              datasets: [{
+                data: hasData ? [data.outcomes.Passed, data.outcomes.Failed] : [1],
+                backgroundColor: hasData ? ['#10b981', '#ef4444'] : ['#94a3b8'],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { color: colors.textColor, padding: 16 } }
+              }
+            }
+          });
+        }
+
+        // 2. Attendance Bar Chart
+        const ctxAtt = document.getElementById('attendanceChart');
+        if (ctxAtt && data.attendance_bins) {
+          if (attendanceChart) attendanceChart.destroy();
+          attendanceChart = new Chart(ctxAtt, {
+            type: 'bar',
+            data: {
+              labels: data.attendance_bins.map(b => b.bin),
+              datasets: [{
+                label: 'Historical Pass Rate (%)',
+                data: data.attendance_bins.map(b => b.pass_rate),
+                backgroundColor: '#4f46e5',
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: { beginAtZero: true, max: 100, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
+                x: { ticks: { color: colors.textColor }, grid: { display: false } }
+              },
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        }
+      });
+  }
+
+  renderCharts();
+  window.addEventListener("themeChanged", renderCharts);
+});
+</script>
+{% endblock %}

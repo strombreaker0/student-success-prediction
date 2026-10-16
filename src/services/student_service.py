@@ -375,19 +375,19 @@ def get_dashboard_summary_metrics(conn = None) -> dict:
         """)
         row_avg = cursor.fetchone()
 
-        avg_attendance = round(row_avg["avg_attendance"], 1) if row_avg["avg_attendance"] is not None else 0.0
-        avg_study = round(row_avg["avg_study"], 1) if row_avg["avg_study"] is not None else 0.0
-        avg_prev_score = round(row_avg["avg_prev_score"], 1) if row_avg["avg_prev_score"] is not None else 0.0
-        avg_assignment = round(row_avg["avg_assignment"], 1) if row_avg["avg_assignment"] is not None else 0.0
+        avg_attendance = round(row_avg["avg_attendance"], 1) if row_avg["avg_attendance"] is not None else None
+        avg_study = round(row_avg["avg_study"], 1) if row_avg["avg_study"] is not None else None
+        avg_prev_score = round(row_avg["avg_prev_score"], 1) if row_avg["avg_prev_score"] is not None else None
+        avg_assignment = round(row_avg["avg_assignment"], 1) if row_avg["avg_assignment"] is not None else None
 
         # Students requiring academic support: Attendance < 75% OR Failed
         cursor.execute("""
         SELECT COUNT(DISTINCT student_id) FROM students
-        WHERE attendance_rate < 75.0 OR passed = 0;
+        WHERE (attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0;
         """)
         support_needed_count = cursor.fetchone()[0]
 
-        pass_rate = round((passed_count / (passed_count + failed_count) * 100), 1) if (passed_count + failed_count) > 0 else 0.0
+        pass_rate = round((passed_count / (passed_count + failed_count) * 100), 1) if (passed_count + failed_count) > 0 else None
 
         return {
             "total_students": total_students,

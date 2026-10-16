@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In | {{ app_name }}{% endblock %}
+
+{% block public_content %}
+<div class="auth-split-wrapper">
+  <!-- Left Panel: Institutional Brand & Analytics Showcase -->
+  <div class="auth-showcase-panel">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="brand-icon" style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold mb-0 text-white" style="font-size: 20px;">{{ app_name }}</h4>
+          <span class="text-white-50 small">Educational Analytics & Early Warning Platform</span>
+        </div>
+      </div>
+
+      <div class="my-5">
+        <h2 class="display-6 fw-bold text-white mb-3" style="line-height: 1.2;">
+          Proactive Academic Success Intelligence
+        </h2>
+        <p class="text-white-50 lead fs-6" style="max-width: 480px;">
+          Empowering faculty and academic advisors with supervised machine learning inference, early-warning risk stratification, and timely remedial action tracking.
+        </p>
+      </div>
+
+      <div class="mt-4">
+        <div class="feature-pill">
+          <div class="feature-pill-icon"><i class="bi bi-cpu-fill"></i></div>
+          <div>
+            <div class="fw-bold text-white">Supervised Predictive Modeling</div>
+            <div class="text-white-50 small">Logistic Regression, Decision Trees, and Random Forests calibrated on empirical coursework indicators.</div>
+          </div>
+        </div>
+
+        <div class="feature-pill">
+          <div class="feature-pill-icon"><i class="bi bi-shield-exclamation"></i></div>
+          <div>
+            <div class="fw-bold text-white">Explainable Risk Stratification</div>
+            <div class="text-white-50 small">Top contributing academic and behavioral dimensions without cohort data leakage.</div>
+          </div>
+        </div>
+
+        <div class="feature-pill">
+          <div class="feature-pill-icon"><i class="bi bi-clipboard2-check-fill"></i></div>
+          <div>
+            <div class="fw-bold text-white">Remedial Action Tracking</div>
+            <div class="text-white-50 small">Closed-loop intervention management with faculty assignment and overdue deadline alerts.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidate Academic Credits -->
+    <div class="pt-4 border-top border-white border-opacity-10 text-white-50 small">
+      <div><b>Field Project:</b> {{ candidate_name }} &bull; {{ candidate_class }}</div>
+      <div>Roll No: {{ candidate_roll }} &bull; Department of Computer Science</div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Sign In Form -->
+  <div class="auth-form-panel">
+    <div class="auth-form-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold fs-4 mb-1">Welcome Back</h3>
+          <p class="text-muted small mb-0">Sign in to your authorized account</p>
+        </div>
+        <button class="btn btn-outline-custom btn-sm theme-toggle-trigger" type="button" title="Toggle Dark/Light Mode">
+          <i class="bi bi-moon-stars-fill theme-icon-el"></i>
+        </button>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show small py-2 mb-3" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          <label class="form-label-custom" for="username_or_email">Username or Institutional Email</label>
+          <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-person"></i></span>
+            {{ form.username_or_email(class="form-control-custom border-start-0", placeholder="e.g. ASMITA or admin@test.edu", autofocus=true) }}
+          </div>
+          {% for error in form.username_or_email.errors %}
+            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <label class="form-label-custom" for="password">Password</label>
+          </div>
+          <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-key"></i></span>
+            {{ form.password(class="form-control-custom border-start-0", placeholder="••••••••", id="login-password-field") }}
+            <button class="btn btn-outline-custom password-toggle-btn" type="button" data-target="login-password-field" aria-label="Toggle password visibility">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% for error in form.password.errors %}
+            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="form-check">
+            {{ form.remember_me(class="form-check-input", id="remember_me_check") }}
+            <label class="form-check-label small text-muted" for="remember_me_check">Remember this device</label>
+          </div>
+          <span class="badge bg-secondary bg-opacity-10 text-muted" style="font-size: 11px;">RBAC Protected</span>
+        </div>
+
+        <button type="submit" class="btn btn-indigo w-100 py-2">
+          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Portal
+        </button>
+      </form>
+
+      <div class="mt-4 pt-3 border-top border-subtle text-center">
+        <span class="text-muted small">Enrolled Student?</span>
+        <a href="{{ url_for('auth.register') }}" class="small fw-semibold ms-1">Register Student Account</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

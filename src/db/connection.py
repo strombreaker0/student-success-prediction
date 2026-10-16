@@ -14,6 +14,12 @@ DEFAULT_DB_PATH = os.path.join(BASE_DIR, "database", "student_success.db")
 def get_db_path(custom_path=None):
     if custom_path:
         return custom_path
+    try:
+        from flask import current_app, has_app_context
+        if has_app_context() and current_app.config.get("STUDENT_DB_PATH"):
+            return current_app.config.get("STUDENT_DB_PATH")
+    except Exception:
+        pass
     return os.environ.get("STUDENT_DB_PATH", DEFAULT_DB_PATH)
 
 

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Student CSV Import | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><a href="{{ url_for('students.index') }}">Students</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Bulk CSV Import</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-file-earmark-arrow-up text-primary"></i> Bulk Student CSV Import</h5>
+        <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom btn-sm">Back to Directory</a>
+      </div>
+      <div class="card-body-custom">
+        <p class="text-muted small">
+          Upload a class roster CSV file to import or update student records in batch. 
+          <span class="text-info fw-semibold">Integrity Guarantee:</span> Imports are executed in a single atomic database transaction. If any row fails validation, no changes will be committed.
+        </p>
+
+        {% if errors %}
+        <div class="alert alert-danger mb-4">
+          <div class="fw-bold mb-1"><i class="bi bi-exclamation-octagon-fill me-2"></i>Validation Errors Encountered:</div>
+          <ul class="mb-0 small ps-3">
+            {% for err in errors %}
+              <li>{{ err }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" class="mb-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-4">
+            <label class="form-label-custom" for="file">Select CSV Roster File</label>
+            <input type="file" name="file" id="file" class="form-control-custom" accept=".csv" required>
+            <div class="form-hint">Accepts standard .csv format with UTF-8 encoding.</div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom">Cancel</a>
+            <button type="submit" class="btn btn-indigo">
+              <i class="bi bi-upload me-1"></i> Validate & Import Roster
+            </button>
+          </div>
+        </form>
+
+        <div class="border-top border-subtle pt-3">
+          <h6 class="fw-bold text-main small mb-2">Required CSV Header Columns:</h6>
+          <div class="p-3 rounded border border-subtle" style="background: var(--bg-body);">
+            <code class="text-primary font-monospace" style="font-size: 12px;">student_id, attendance_rate, study_hours_per_week, previous_scores, assignment_completion_rate, tutoring_sessions, sleep_hours, extracurricular, internet_access</code>
+          </div>
+          <p class="text-muted small mt-2 mb-0">
+            Existing student IDs will have their behavioral attributes updated with fresh metrics.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

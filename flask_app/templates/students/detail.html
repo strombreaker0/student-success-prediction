@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile: {{ student.student_id }} | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><a href="{{ url_for('students.index') }}">Students</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">{{ student.student_id }}</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h3 class="fw-bold fs-4 mb-0">Student Profile: {{ student.student_id }}</h3>
+      {% if student.passed == 1 %}
+      <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Passed</span>
+      {% elif student.passed == 0 %}
+      <span class="badge-status badge-status-fail"><i class="bi bi-x-circle"></i> Failed</span>
+      {% else %}
+      <span class="badge-status badge-status-pending"><i class="bi bi-hourglass-split"></i> In Progress</span>
+      {% endif %}
+    </div>
+    <p class="text-muted small mb-0">Multi-dimensional academic, engagement, and behavioral dimensions.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('predictions.predict', student_id=student.student_id) }}" class="btn btn-indigo btn-sm">
+      <i class="bi bi-cpu"></i> Predict Risk
+    </a>
+    <a href="{{ url_for('predictions.simulator') }}?student_id={{ student.student_id }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-sliders2"></i> What-If Simulator
+    </a>
+    <a href="{{ url_for('students.export_pdf', student_id=student.student_id) }}" class="btn btn-outline-custom btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf text-danger"></i> Export PDF
+    </a>
+    {% if current_user.can_manage_students() %}
+    <a href="{{ url_for('students.edit', student_id=student.student_id) }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-pencil"></i> Edit Profile
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Dimension Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Attendance Rate</div>
+          <div class="stat-val {% if student.attendance_rate is not none and student.attendance_rate < 75.0 %}text-danger{% elif student.attendance_rate is not none %}text-success{% else %}text-muted{% endif %}">
+            {% if student.attendance_rate is not none %}{{ student.attendance_rate }}%{% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(14, 165, 233, 0.1); color: #0284c7;">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">Benchmark: 75.0%</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Weekly Study</div>
+          <div class="stat-val text-info">
+            {% if student.study_hours_per_week is not none %}{{ student.study_hours_per_week }} hrs{% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+          <i class="bi bi-book"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">Benchmark: 12 hrs/wk</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Prior Exam Score</div>
+          <div class="stat-val text-primary">
+            {% if student.previous_scores is not none %}{{ student.previous_scores }}%{% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="bi bi-card-checklist"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">Coursework baseline</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Assignment Rate</div>
+          <div class="stat-val text-teal" style="color: var(--brand-teal);">
+            {% if student.assignment_completion_rate is not none %}{{ student.assignment_completion_rate }}%{% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(13, 148, 136, 0.1); color: #0d9488;">
+          <i class="bi bi-journal-check"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">Submission consistency</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Dimension Attributes Table -->
+  <div class="col-12 col-lg-5">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-person-lines-fill text-primary"></i> Behavioral & Environmental Context</h5>
+      </div>
+      <div class="card-body-custom p-0">
+        <table class="table-custom">
+          <tbody>
+            <tr>
+              <td class="text-muted">Tutoring Sessions:</td>
+              <td class="fw-bold">{% if student.tutoring_sessions is not none %}{{ student.tutoring_sessions }} sessions attended{% else %}Not Recorded{% endif %}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Sleep Duration:</td>
+              <td class="fw-bold">{% if student.sleep_hours is not none %}{{ student.sleep_hours }} hrs/night{% else %}Not Recorded{% endif %}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Extracurriculars:</td>
+              <td class="fw-bold">{% if student.extracurricular == 1 %}<span class="badge bg-success bg-opacity-15 text-success">Active Participation</span>{% else %}<span class="badge bg-secondary bg-opacity-15 text-muted">None</span>{% endif %}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Internet Connectivity:</td>
+              <td class="fw-bold">{% if student.internet_access == 1 %}<span class="badge bg-info bg-opacity-15 text-info">Available at Home</span>{% else %}<span class="badge bg-warning bg-opacity-15 text-warning">Unavailable</span>{% endif %}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Historical Final Exam:</td>
+              <td class="fw-bold">{% if student.final_exam_score is not none %}{{ student.final_exam_score }}%{% else %}<span class="text-muted">In Progress / Pending</span>{% endif %}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Latest ML Inference & Explainability -->
+  <div class="col-12 col-lg-7">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-lightning-charge-fill text-warning"></i> Predictive Risk Assessment</h5>
+        <span class="badge bg-secondary bg-opacity-10 text-muted" style="font-size: 11px;">Decision Support</span>
+      </div>
+      <div class="card-body-custom">
+        {% if predictions %}
+          {% set latest = predictions[0] %}
+          <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded mb-3 border border-subtle" style="background: var(--bg-surface);">
+            <div>
+              <div class="text-muted small">Supervised Pipeline: {{ latest.model_name }}</div>
+              <div class="fs-4 fw-bold {% if latest.predicted_outcome == 1 %}text-success{% else %}text-danger{% endif %}">
+                Predicted: {{ latest.outcome_label }} ({{ latest.pass_probability_pct }}% Likelihood)
+              </div>
+            </div>
+            <div>
+              {% if latest.risk_category == 'Low Risk' %}
+              <span class="badge-risk badge-risk-low"><i class="bi bi-shield-check"></i> Low Risk (Safe)</span>
+              {% elif latest.risk_category == 'Moderate Risk' %}
+              <span class="badge-risk badge-risk-moderate"><i class="bi bi-shield-exclamation"></i> Moderate Risk</span>
+              {% else %}
+              <span class="badge-risk badge-risk-high"><i class="bi bi-shield-x"></i> High Risk (Alert)</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Top 3 Contributing Factors -->
+          <div class="mb-3">
+            <h6 class="fw-bold small mb-2"><i class="bi bi-search me-1"></i> Top Contributing Factors (Explainable AI):</h6>
+            {% if latest.top_factors %}
+              <div class="d-flex flex-column gap-2">
+                {% for factor in latest.top_factors %}
+                <div class="p-2 px-3 rounded border border-subtle small" style="background: var(--bg-body);">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <b class="text-main">{{ factor.feature_name }}</b>
+                    {% if factor.direction == 'positive' %}
+                    <span class="badge-status badge-status-pass" style="font-size: 11px;"><i class="bi bi-arrow-up-circle"></i> Protective Factor</span>
+                    {% else %}
+                    <span class="badge-status badge-status-fail" style="font-size: 11px;"><i class="bi bi-arrow-down-circle"></i> Risk Contributor</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-muted mt-1">{{ factor.description }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted small">Factors derived from linear feature weights and cohort scaling.</p>
+            {% endif %}
+          </div>
+
+          <div class="alert alert-secondary py-2 px-3 small border-0 mb-0">
+            <i class="bi bi-info-circle me-1"></i> <i>Predictions support teacher judgment and are not final decisions.</i>
+          </div>
+        {% else %}
+          <div class="empty-state py-4">
+            <div class="empty-state-icon"><i class="bi bi-cpu"></i></div>
+            <div class="empty-state-title">No Predictions Recorded Yet</div>
+            <p class="empty-state-desc">Run supervised ML classification on this student's coursework and attendance data.</p>
+            <a href="{{ url_for('predictions.predict', student_id=student.student_id) }}" class="btn btn-indigo btn-sm">
+              <i class="bi bi-play-circle me-1"></i> Run Initial Prediction
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Remedial Interventions Section -->
+<div class="content-card mb-4">
+  <div class="card-header-custom">
+    <h5 class="card-title-custom"><i class="bi bi-clipboard2-check-fill text-info"></i> Remedial Action Plans & Interventions</h5>
+    {% if current_user.can_manage_students() %}
+    <button class="btn btn-outline-custom btn-sm" data-bs-toggle="collapse" data-bs-target="#newInterventionCollapse">
+      <i class="bi bi-plus-circle me-1"></i> Add Remedial Action
+    </button>
+    {% endif %}
+  </div>
+
+  {% if current_user.can_manage_students() %}
+  <div class="collapse p-3 border-bottom border-subtle" id="newInterventionCollapse">
+    <form method="POST" action="{{ url_for('interventions.create') }}" class="row g-3">
+      {{ intervention_form.hidden_tag() }}
+      <input type="hidden" name="student_id" value="{{ student.student_id }}">
+      <div class="col-12 col-md-6">
+        <label class="form-label-custom">Intervention Title</label>
+        {{ intervention_form.title(class="form-control-custom", placeholder="e.g. Mandatory Attendance Counseling") }}
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label-custom">Follow-up Milestone (YYYY-MM-DD)</label>
+        {{ intervention_form.follow_up_date(class="form-control-custom", placeholder="2026-11-15") }}
+      </div>
+      <div class="col-12">
+        <label class="form-label-custom">Guidance Notes & Remediation Directives</label>
+        {{ intervention_form.description(class="form-control-custom", rows=2, placeholder="Action plan steps, tutoring schedule...") }}
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-indigo btn-sm">Save Action Plan</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if interventions %}
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Action Item</th>
+          <th>Target Date</th>
+          <th>Advisor</th>
+          <th class="text-end">Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in interventions %}
+        <tr>
+          <td>
+            {% if item.status == 'Open' %}
+            <span class="badge-status badge-status-pending"><i class="bi bi-clock"></i> Open</span>
+            {% elif item.status == 'In progress' %}
+            <span class="badge-status" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.2);"><i class="bi bi-arrow-repeat"></i> In Progress</span>
+            {% else %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Resolved</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="fw-bold">{{ item.title }}</div>
+            <small class="text-muted">{{ item.description }}</small>
+          </td>
+          <td>{{ item.follow_up_date or 'No date set' }}</td>
+          <td>{{ item.created_by }}</td>
+          <td class="text-end">
+            {% if current_user.can_manage_students() %}
+            <form action="{{ url_for('interventions.update', intervention_id=item.id) }}" method="POST" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="status" class="form-select-custom py-1 px-2 d-inline-block w-auto" style="font-size: 12px;" onchange="this.form.submit()">
+                <option value="Open" {% if item.status == 'Open' %}selected{% endif %}>Open</option>
+                <option value="In progress" {% if item.status == 'In progress' %}selected{% endif %}>In progress</option>
+                <option value="Resolved" {% if item.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+              </select>
+            </form>
+            {% else %}
+            <span class="text-muted small">Advisory</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body-custom text-center py-4 text-muted small">
+    <i class="bi bi-check2-circle text-success fs-3 d-block mb-1"></i>
+    No remedial interventions currently open for this student.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Four-Year Academic Transcript History -->
+{% if transcript and transcript.academic_years %}
+<div class="content-card">
+  <div class="card-header-custom">
+    <h5 class="card-title-custom"><i class="bi bi-mortarboard-fill text-primary"></i> Four-Year Academic Transcript Trajectory</h5>
+  </div>
+  <div class="card-body-custom">
+    <div class="accordion" id="transcriptAccordion">
+      {% for yr in transcript.academic_years %}
+      <div class="accordion-item bg-transparent border border-subtle mb-2 rounded overflow-hidden">
+        <h2 class="accordion-header" id="headingYr{{ yr.id }}">
+          <button class="accordion-button collapsed bg-transparent text-main" type="button" data-bs-toggle="collapse" data-bs-target="#collapseYr{{ yr.id }}">
+            <span class="fw-bold me-3">{{ yr.year_name }} (Year {{ yr.academic_year }})</span>
+            <span class="badge bg-secondary me-2">CGPA: {{ yr.cgpa or 'N/A' }}</span>
+            <span class="badge bg-primary">Credits: {{ yr.total_credits_earned }}</span>
+          </button>
+        </h2>
+        <div id="collapseYr{{ yr.id }}" class="accordion-collapse collapse" data-bs-parent="#transcriptAccordion">
+          <div class="accordion-body">
+            <p class="text-muted small mb-0">{{ yr.remarks or 'No specific academic remarks recorded.' }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

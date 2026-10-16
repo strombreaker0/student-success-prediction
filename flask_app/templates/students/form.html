@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><a href="{{ url_for('students.index') }}">Students</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">{{ title }}</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-person-gear text-primary"></i> {{ title }}</h5>
+        <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom btn-sm">Cancel</a>
+      </div>
+      <div class="card-body-custom">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <!-- Section 1: Academic Identity -->
+          <div class="mb-4">
+            <h6 class="fw-bold small text-uppercase text-muted mb-3"><i class="bi bi-hash me-1"></i> Academic Identity</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="student_id">Student ID</label>
+                {{ form.student_id(class="form-control-custom", placeholder="e.g. STU_1001", readonly=is_edit) }}
+                <div class="form-hint">Unique institutional roll or enrollment matriculation key.</div>
+                {% for error in form.student_id.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="attendance_rate">Attendance Rate (%)</label>
+                <div class="input-group">
+                  {{ form.attendance_rate(class="form-control-custom", placeholder="0.0 - 100.0") }}
+                  <span class="input-group-text input-group-text-custom">%</span>
+                </div>
+                <div class="form-hint">Institutional threshold: 75.0% minimum.</div>
+                {% for error in form.attendance_rate.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Engagement & Coursework -->
+          <div class="mb-4 pt-3 border-top border-subtle">
+            <h6 class="fw-bold small text-uppercase text-muted mb-3"><i class="bi bi-book me-1"></i> Engagement & Coursework Metrics</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="study_hours_per_week">Weekly Study Hours</label>
+                <div class="input-group">
+                  {{ form.study_hours_per_week(class="form-control-custom", placeholder="e.g. 14.5") }}
+                  <span class="input-group-text input-group-text-custom">hrs/wk</span>
+                </div>
+                <div class="form-hint">Self-study and revision hours outside of lecture sessions.</div>
+                {% for error in form.study_hours_per_week.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="previous_scores">Previous Exam Baseline (%)</label>
+                <div class="input-group">
+                  {{ form.previous_scores(class="form-control-custom", placeholder="e.g. 68.0") }}
+                  <span class="input-group-text input-group-text-custom">%</span>
+                </div>
+                <div class="form-hint">Prior semester or midterm academic coursework score.</div>
+                {% for error in form.previous_scores.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Submissions & Support -->
+          <div class="mb-4 pt-3 border-top border-subtle">
+            <h6 class="fw-bold small text-uppercase text-muted mb-3"><i class="bi bi-journal-check me-1"></i> Assignments & Academic Support</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="assignment_completion_rate">Assignment Completion Rate (%)</label>
+                <div class="input-group">
+                  {{ form.assignment_completion_rate(class="form-control-custom", placeholder="e.g. 85.0") }}
+                  <span class="input-group-text input-group-text-custom">%</span>
+                </div>
+                {% for error in form.assignment_completion_rate.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="tutoring_sessions">Tutoring Sessions Attended</label>
+                {{ form.tutoring_sessions(class="form-control-custom", placeholder="0 - 50") }}
+                <div class="form-hint">Formal remedial or peer tutoring hours logged.</div>
+                {% for error in form.tutoring_sessions.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Behavioral & Socioeconomic -->
+          <div class="mb-4 pt-3 border-top border-subtle">
+            <h6 class="fw-bold small text-uppercase text-muted mb-3"><i class="bi bi-heart-pulse me-1"></i> Behavioral & Environmental Context</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label class="form-label-custom" for="sleep_hours">Sleep Hours / Night</label>
+                <div class="input-group">
+                  {{ form.sleep_hours(class="form-control-custom", placeholder="e.g. 7.5") }}
+                  <span class="input-group-text input-group-text-custom">hrs</span>
+                </div>
+                {% for error in form.sleep_hours.errors %}
+                  <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label-custom" for="extracurricular">Extracurricular Activities</label>
+                {{ form.extracurricular(class="form-select-custom") }}
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label-custom" for="internet_access">Internet Connectivity</label>
+                {{ form.internet_access(class="form-select-custom") }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Historical Outcome -->
+          <div class="border-top border-subtle pt-3 mb-4">
+            <h6 class="fw-bold small text-uppercase text-muted mb-3"><i class="bi bi-award me-1"></i> Historical Outcome (Optional / Post-Facto)</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="final_exam_score">Final Exam Score (%)</label>
+                <div class="input-group">
+                  {{ form.final_exam_score(class="form-control-custom", placeholder="Leave empty if course in progress") }}
+                  <span class="input-group-text input-group-text-custom">%</span>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label-custom" for="passed">Final Result Status</label>
+                {{ form.passed(class="form-select-custom") }}
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-2 border-top border-subtle">
+            <a href="{{ url_for('students.index') }}" class="btn btn-outline-custom">Cancel</a>
+            <button type="submit" class="btn btn-indigo">
+              <i class="bi bi-check2-circle me-1"></i> Save Student Record
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

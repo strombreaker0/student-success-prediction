@@ -45,6 +45,7 @@ def create_schema(conn):
         linked_student_id TEXT REFERENCES students(student_id) ON DELETE SET NULL,
         full_name TEXT NOT NULL,
         is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+        last_login TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
@@ -60,6 +61,7 @@ def create_schema(conn):
         fail_probability REAL NOT NULL CHECK(fail_probability >= 0.0 AND fail_probability <= 1.0),
         risk_category TEXT NOT NULL CHECK(risk_category IN ('Low Risk', 'Moderate Risk', 'High Risk')),
         interventions_json TEXT NOT NULL,
+        top_factors_json TEXT,
         predicted_by TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -145,7 +147,36 @@ def create_schema(conn):
     );
     """)
 
-    # 8. Indexes for optimal query performance
+    # 8. Interventions Tracker Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS interventions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id TEXT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'Open' CHECK(status IN ('Open', 'In progress', 'Resolved')),
+        follow_up_date TEXT,
+        created_by TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 9. Audit Logs Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        username TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target TEXT,
+        details TEXT,
+        ip_address TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 10. Indexes for optimal query performance
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);")
@@ -157,5 +188,9 @@ def create_schema(conn):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_subj_semester ON subject_results(semester_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_subj_student ON subject_results(student_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_act_student ON student_activities(student_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_interventions_student_id ON interventions(student_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_interventions_status ON interventions(status);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);")
 
     conn.commit()

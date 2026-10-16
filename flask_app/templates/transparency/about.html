@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}System Architecture & Methodology | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Governance</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">System Architecture</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">System Architecture & Methodology</h3>
+    <p class="text-muted small mb-0">Academic Field Project Specification & Educational Data Mining (EDM) Architecture.</p>
+  </div>
+  <div>
+    <span class="badge bg-primary bg-opacity-15 text-primary py-2 px-3 fw-semibold border border-primary border-opacity-25">
+      SYBSc CS Field Project
+    </span>
+  </div>
+</div>
+
+<!-- Candidate Credentials Dossier -->
+<div class="content-card mb-4">
+  <div class="card-header-custom">
+    <h5 class="card-title-custom"><i class="bi bi-mortarboard text-primary"></i> Academic Candidate Credentials</h5>
+  </div>
+  <div class="card-body-custom">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Candidate Name</div>
+          <div class="fw-bold fs-5 text-main">{{ credentials.name }}</div>
+          <small class="text-muted">Principal Investigator</small>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Class & Department</div>
+          <div class="fw-bold fs-5 text-info">{{ credentials.class }}</div>
+          <small class="text-muted">Department of Computer Science</small>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="stat-card">
+          <div class="stat-label">Candidate Roll Number</div>
+          <div class="fw-bold fs-5 text-teal" style="color: var(--brand-teal);">{{ credentials.roll_no }}</div>
+          <small class="text-muted">Academic Cohort: {{ credentials.year }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Architecture Pipeline Workflow -->
+<div class="content-card mb-4">
+  <div class="card-header-custom">
+    <h5 class="card-title-custom"><i class="bi bi-diagram-3 text-info"></i> EDM Data Pipeline Workflow</h5>
+  </div>
+  <div class="card-body-custom">
+    <div class="row g-3 text-center">
+      <div class="col-12 col-md">
+        <div class="p-3 rounded border border-subtle h-100" style="background: var(--bg-body);">
+          <div class="fs-4 text-primary mb-2"><i class="bi bi-database"></i></div>
+          <h6 class="fw-bold text-main small">1. Data Ingestion</h6>
+          <small class="text-muted">8 behavioral dimensions validated & stored.</small>
+        </div>
+      </div>
+      <div class="col-12 col-md">
+        <div class="p-3 rounded border border-subtle h-100" style="background: var(--bg-body);">
+          <div class="fs-4 text-info mb-2"><i class="bi bi-funnel"></i></div>
+          <h6 class="fw-bold text-main small">2. Preprocessing</h6>
+          <small class="text-muted">Median imputation & Z-score scaling.</small>
+        </div>
+      </div>
+      <div class="col-12 col-md">
+        <div class="p-3 rounded border border-subtle h-100" style="background: var(--bg-body);">
+          <div class="fs-4 text-teal mb-2" style="color: var(--brand-teal);"><i class="bi bi-cpu"></i></div>
+          <h6 class="fw-bold text-main small">3. Model Training</h6>
+          <small class="text-muted">Logistic Regression, Decision Trees, Random Forests.</small>
+        </div>
+      </div>
+      <div class="col-12 col-md">
+        <div class="p-3 rounded border border-subtle h-100" style="background: var(--bg-body);">
+          <div class="fs-4 text-warning mb-2"><i class="bi bi-check2-circle"></i></div>
+          <h6 class="fw-bold text-main small">4. Evaluation</h6>
+          <small class="text-muted">Accuracy (80.0%), Recall (90.6%), ROC-AUC (0.8495).</small>
+        </div>
+      </div>
+      <div class="col-12 col-md">
+        <div class="p-3 rounded border border-subtle h-100" style="background: var(--bg-body);">
+          <div class="fs-4 text-success mb-2"><i class="bi bi-display"></i></div>
+          <h6 class="fw-bold text-main small">5. Decision Portal</h6>
+          <small class="text-muted">Flask web app with Explainable AI.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mathematical Formulation & Tech Stack -->
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-calculator text-warning"></i> Mathematical Formulation</h5>
+      </div>
+      <div class="card-body-custom">
+        <h6 class="fw-bold small text-main">Logistic Regression Hypothesis</h6>
+        <div class="p-3 rounded border border-subtle mb-3" style="background: var(--bg-body);">
+          <code class="text-primary fs-6 font-monospace">P(Y = 1 | x) = &sigma;(w<sup>T</sup>x + b) = 1 / (1 + e<sup>-(w<sup>T</sup>x + b)</sup>)</code>
+        </div>
+        <p class="text-muted small">
+          Where <b>w</b> represents the learned weights vector for the 8 behavioral features, and <b>b</b> is the bias intercept.
+        </p>
+
+        <h6 class="fw-bold small text-main mt-4">Standard Scaling (Z-Score Normalization)</h6>
+        <div class="p-3 rounded border border-subtle mb-3" style="background: var(--bg-body);">
+          <code class="text-primary fs-6 font-monospace">Z = (X - &mu;) / &sigma;</code>
+        </div>
+        <p class="text-muted small mb-0">
+          Features are standardized to zero mean (&mu;) and unit variance (&sigma;) to ensure metric distance equilibrium across heterogeneous indicators.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-layers text-primary"></i> Production Technology Stack</h5>
+      </div>
+      <div class="card-body-custom p-0">
+        <table class="table-custom">
+          <tbody>
+            <tr>
+              <td class="text-muted">Backend Framework</td>
+              <td class="fw-bold">Python 3.13 / Flask 3.1 (Application Factory Pattern)</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Persistence & Database</td>
+              <td class="fw-bold">SQLite 3 (WAL Journal Mode & Foreign Key Enforcement)</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Authentication & Security</td>
+              <td class="fw-bold">Flask-Login, Flask-WTF (CSRF), Werkzeug Hashing</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Machine Learning Pipeline</td>
+              <td class="fw-bold">Scikit-Learn, Joblib, NumPy, Pandas</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Frontend & Templates</td>
+              <td class="fw-bold">Jinja2, HTML5, CSS3 Tokens, Bootstrap 5, Chart.js</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Dossier Report Engine</td>
+              <td class="fw-bold">ReportLab 5.0 (Automated Assessment PDF Generation)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

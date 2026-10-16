@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Logs | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Security</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Audit Trail</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">System Security & Operational Audit Log</h3>
+    <p class="text-muted small mb-0">Immutable chronological ledger of authentication attempts, ML inference requests, and student record modifications.</p>
+  </div>
+  <div>
+    <span class="badge bg-danger bg-opacity-15 text-danger py-2 px-3 fw-semibold border border-danger border-opacity-25">
+      <i class="bi bi-shield-lock-fill me-1"></i> Administrator Clearance
+    </span>
+  </div>
+</div>
+
+<!-- Filters Toolbar -->
+<div class="content-card mb-4">
+  <div class="card-body-custom py-3">
+    <form method="GET" action="{{ url_for('audit.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text input-group-text-custom"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control-custom form-control-sm border-start-0" placeholder="Search target or details..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <select name="action" class="form-select-custom form-select-sm" onchange="this.form.submit()">
+          <option value="">All Security Actions</option>
+          {% for act in actions %}
+          <option value="{{ act }}" {% if action_filter == act %}selected{% endif %}>{{ act }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <input type="text" name="username" class="form-control-custom form-control-sm" placeholder="Filter by username..." value="{{ user_filter }}">
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-indigo btn-sm w-100">Filter</button>
+        {% if search_query or action_filter or user_filter %}
+        <a href="{{ url_for('audit.index') }}" class="btn btn-outline-custom btn-sm">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="content-card">
+  {% if logs %}
+  <div class="table-responsive">
+    <table class="table-custom" style="font-size: 13px;">
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Actor Username</th>
+          <th>Action Type</th>
+          <th>Target Entity</th>
+          <th>Details</th>
+          <th>Client IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="text-muted" style="white-space: nowrap;">{{ log.created_at }}</td>
+          <td>
+            <span class="fw-bold text-main">@{{ log.username }}</span>
+          </td>
+          <td>
+            {% if 'LOGIN_SUCCESS' in log.action or 'REGISTER' in log.action %}
+            <span class="badge-status badge-status-pass" style="font-size: 11px;">{{ log.action }}</span>
+            {% elif 'FAILURE' in log.action or 'DELETE' in log.action or 'RATE_LIMITED' in log.action %}
+            <span class="badge-status badge-status-fail" style="font-size: 11px;">{{ log.action }}</span>
+            {% elif 'UPDATE' in log.action or 'PASSWORD' in log.action %}
+            <span class="badge-status badge-status-pending" style="font-size: 11px;">{{ log.action }}</span>
+            {% else %}
+            <span class="badge-status" style="background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); font-size: 11px;">{{ log.action }}</span>
+            {% endif %}
+          </td>
+          <td><code>{{ log.target or '-' }}</code></td>
+          <td class="text-muted" style="max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.details }}">
+            {{ log.details or '-' }}
+          </td>
+          <td><span class="badge bg-secondary bg-opacity-15 text-muted font-monospace">{{ log.ip_address }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="card-body-custom py-3 border-top border-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <small class="text-muted">Page {{ page }} of {{ total_pages }} ({{ total_count }} logged security events)</small>
+    <nav>
+      <ul class="pagination pagination-sm m-0">
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('audit.index', page=page-1, q=search_query, action=action_filter, username=user_filter) }}">Previous</a>
+        </li>
+        <li class="page-item active">
+          <span class="page-link">{{ page }}</span>
+        </li>
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('audit.index', page=page+1, q=search_query, action=action_filter, username=user_filter) }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i class="bi bi-shield-check"></i></div>
+    <div class="empty-state-title">No Audit Events Logged</div>
+    <p class="empty-state-desc">No events matched the selected filter criteria.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

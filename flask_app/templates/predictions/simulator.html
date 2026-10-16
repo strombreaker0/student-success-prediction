@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}What-If Scenario Simulator | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Machine Learning</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">What-If Simulator</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">What-If Academic Scenario Simulator</h3>
+    <p class="text-muted small mb-0">Explore how behavioral adjustments (attendance, study hours, assignments) influence exam outcome probabilities in real time.</p>
+  </div>
+  <div>
+    <span class="badge bg-warning bg-opacity-15 text-warning py-2 px-3 fw-semibold border border-warning border-opacity-25">
+      <i class="bi bi-shield-lock me-1"></i> Safe Simulation Mode (Zero Database Writes)
+    </span>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Interactive Sliders -->
+  <div class="col-12 col-lg-6">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-sliders text-primary"></i> Behavioral Dimension Controls</h5>
+      </div>
+      <div class="card-body-custom">
+        <!-- Attendance -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Attendance Rate (%)</span>
+            <span id="att-val" class="text-primary">{{ inputs.attendance_rate }}%</span>
+          </div>
+          <input type="range" class="form-range" id="sim-attendance" min="0" max="100" step="0.5" value="{{ inputs.attendance_rate }}">
+        </div>
+
+        <!-- Study Hours -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Weekly Study Hours</span>
+            <span id="study-val" class="text-primary">{{ inputs.study_hours_per_week }} hrs/wk</span>
+          </div>
+          <input type="range" class="form-range" id="sim-study" min="0" max="40" step="0.5" value="{{ inputs.study_hours_per_week }}">
+        </div>
+
+        <!-- Previous Scores -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Previous Exam Score (%)</span>
+            <span id="prev-val" class="text-primary">{{ inputs.previous_scores }}%</span>
+          </div>
+          <input type="range" class="form-range" id="sim-prev" min="0" max="100" step="0.5" value="{{ inputs.previous_scores }}">
+        </div>
+
+        <!-- Assignment Completion -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Assignment Completion Rate (%)</span>
+            <span id="assign-val" class="text-primary">{{ inputs.assignment_completion_rate }}%</span>
+          </div>
+          <input type="range" class="form-range" id="sim-assign" min="0" max="100" step="0.5" value="{{ inputs.assignment_completion_rate }}">
+        </div>
+
+        <!-- Tutoring Sessions -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Tutoring Sessions Attended</span>
+            <span id="tutor-val" class="text-primary">{{ inputs.tutoring_sessions }} sessions</span>
+          </div>
+          <input type="range" class="form-range" id="sim-tutor" min="0" max="10" step="1" value="{{ inputs.tutoring_sessions }}">
+        </div>
+
+        <!-- Sleep Hours -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span>Sleep Hours / Night</span>
+            <span id="sleep-val" class="text-primary">{{ inputs.sleep_hours }} hrs</span>
+          </div>
+          <input type="range" class="form-range" id="sim-sleep" min="4" max="12" step="0.5" value="{{ inputs.sleep_hours }}">
+        </div>
+
+        <!-- Extracurricular & Internet Access -->
+        <div class="row g-2 pt-2 border-top border-subtle">
+          <div class="col-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="sim-extra" {% if inputs.extracurricular == 1 %}checked{% endif %}>
+              <label class="form-check-label small" for="sim-extra">Extracurricular Activities</label>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="sim-internet" {% if inputs.internet_access == 1 %}checked{% endif %}>
+              <label class="form-check-label small" for="sim-internet">Internet Connectivity</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-Time Output Display -->
+  <div class="col-12 col-lg-6">
+    <div class="content-card h-100">
+      <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="card-title-custom"><i class="bi bi-speedometer2 text-primary"></i> Simulated Trajectory</h5>
+        <span class="badge bg-secondary bg-opacity-15 text-main">Dynamic Inference</span>
+      </div>
+      <div class="card-body-custom" id="sim-result-card">
+        {% if result %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded mb-3 border border-subtle" style="background: var(--bg-surface);">
+          <div>
+            <div class="text-muted small">Forecasted Outcome</div>
+            <div id="sim-outcome-label" class="fs-3 fw-bold {% if result.predicted_outcome == 1 %}text-success{% else %}text-danger{% endif %}">
+              {{ result.outcome_label }}
+            </div>
+          </div>
+          <div id="sim-risk-badge">
+            {% if result.risk_category == 'Low Risk' %}
+            <span class="badge-risk badge-risk-low fs-6 py-2 px-3"><i class="bi bi-shield-check"></i> Low Risk</span>
+            {% elif result.risk_category == 'Moderate Risk' %}
+            <span class="badge-risk badge-risk-moderate fs-6 py-2 px-3"><i class="bi bi-shield-exclamation"></i> Moderate Risk</span>
+            {% else %}
+            <span class="badge-risk badge-risk-high fs-6 py-2 px-3"><i class="bi bi-shield-x"></i> High Risk</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span id="sim-pass-prob" class="text-success"><i class="bi bi-check-circle me-1"></i>Pass Likelihood: {{ result.pass_probability_pct }}%</span>
+            <span id="sim-fail-prob" class="text-danger"><i class="bi bi-x-circle me-1"></i>Fail Probability: {{ result.fail_probability_pct }}%</span>
+          </div>
+          <div class="progress" style="height: 10px; background-color: var(--border-subtle); border-radius: 9999px;">
+            <div id="sim-bar-pass" class="progress-bar bg-success" role="progressbar" style="width: {{ result.pass_probability_pct }}%;"></div>
+            <div id="sim-bar-fail" class="progress-bar bg-danger" role="progressbar" style="width: {{ result.fail_probability_pct }}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-diagram-3-fill me-1 text-info"></i> Dynamic Feature Contributions:</h6>
+          <div id="sim-factors" class="d-flex flex-column gap-2">
+            {% for factor in result.top_factors %}
+            <div class="p-2 px-3 rounded border border-subtle small" style="background: var(--bg-body);">
+              <div class="d-flex justify-content-between align-items-center">
+                <b class="text-main">{{ factor.feature_name }}</b>
+                <span class="{% if factor.direction == 'positive' %}text-success{% else %}text-danger{% endif %} fw-semibold">
+                  {{ factor.direction|capitalize }}
+                </span>
+              </div>
+              <div class="text-muted small mt-1">{{ factor.description }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="alert alert-secondary py-2 px-3 small border-0 text-center text-muted mb-0">
+          <i class="bi bi-info-circle me-1"></i> <i>{{ result.disclaimer }}</i>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const attSlider = document.getElementById('sim-attendance');
+  const studySlider = document.getElementById('sim-study');
+  const prevSlider = document.getElementById('sim-prev');
+  const assignSlider = document.getElementById('sim-assign');
+  const tutorSlider = document.getElementById('sim-tutor');
+  const sleepSlider = document.getElementById('sim-sleep');
+  const extraSwitch = document.getElementById('sim-extra');
+  const netSwitch = document.getElementById('sim-internet');
+
+  const sliders = [attSlider, studySlider, prevSlider, assignSlider, tutorSlider, sleepSlider, extraSwitch, netSwitch];
+
+  function runSimulation() {
+    document.getElementById('att-val').innerText = attSlider.value + '%';
+    document.getElementById('study-val').innerText = studySlider.value + ' hrs/wk';
+    document.getElementById('prev-val').innerText = prevSlider.value + '%';
+    document.getElementById('assign-val').innerText = assignSlider.value + '%';
+    document.getElementById('tutor-val').innerText = tutorSlider.value + ' sessions';
+    document.getElementById('sleep-val').innerText = sleepSlider.value + ' hrs';
+
+    const payload = {
+      attendance_rate: parseFloat(attSlider.value),
+      study_hours_per_week: parseFloat(studySlider.value),
+      previous_scores: parseFloat(prevSlider.value),
+      assignment_completion_rate: parseFloat(assignSlider.value),
+      tutoring_sessions: parseInt(tutorSlider.value),
+      sleep_hours: parseFloat(sleepSlider.value),
+      extracurricular: extraSwitch.checked ? 1 : 0,
+      internet_access: netSwitch.checked ? 1 : 0,
+      model_name: "Logistic Regression"
+    };
+
+    fetch('/api/simulate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success && res.data) {
+        const d = res.data;
+        document.getElementById('sim-outcome-label').innerText = d.outcome_label;
+        document.getElementById('sim-outcome-label').className = 'fs-3 fw-bold ' + (d.predicted_outcome === 1 ? 'text-success' : 'text-danger');
+        
+        let badgeHtml = '';
+        if (d.risk_category === 'Low Risk') {
+          badgeHtml = '<span class="badge-risk badge-risk-low fs-6 py-2 px-3"><i class="bi bi-shield-check"></i> Low Risk</span>';
+        } else if (d.risk_category === 'Moderate Risk') {
+          badgeHtml = '<span class="badge-risk badge-risk-moderate fs-6 py-2 px-3"><i class="bi bi-shield-exclamation"></i> Moderate Risk</span>';
+        } else {
+          badgeHtml = '<span class="badge-risk badge-risk-high fs-6 py-2 px-3"><i class="bi bi-shield-x"></i> High Risk</span>';
+        }
+        document.getElementById('sim-risk-badge').innerHTML = badgeHtml;
+
+        document.getElementById('sim-pass-prob').innerHTML = '<i class="bi bi-check-circle me-1"></i>Pass Likelihood: ' + d.pass_probability_pct + '%';
+        document.getElementById('sim-fail-prob').innerHTML = '<i class="bi bi-x-circle me-1"></i>Fail Probability: ' + d.fail_probability_pct + '%';
+        document.getElementById('sim-bar-pass').style.width = d.pass_probability_pct + '%';
+        document.getElementById('sim-bar-fail').style.width = d.fail_probability_pct + '%';
+
+        let factorsHtml = '';
+        d.top_factors.forEach(f => {
+          factorsHtml += `<div class="p-2 px-3 rounded border border-subtle small" style="background: var(--bg-body);">
+            <div class="d-flex justify-content-between align-items-center">
+              <b class="text-main">${f.feature_name}</b>
+              <span class="${f.direction === 'positive' ? 'text-success' : 'text-danger'} fw-semibold">${f.direction.toUpperCase()}</span>
+            </div>
+            <div class="text-muted small mt-1">${f.description}</div>
+          </div>`;
+        });
+        document.getElementById('sim-factors').innerHTML = factorsHtml;
+      }
+    });
+  }
+
+  sliders.forEach(s => {
+    if (s) {
+      s.addEventListener('input', runSimulation);
+    }
+  });
+});
+</script>
+{% endblock %}

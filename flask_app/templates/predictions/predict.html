@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Real-Time ML Risk Prediction | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li><span>Machine Learning</span></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Real-Time Prediction</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-1">Supervised ML Risk Prediction</h3>
+    <p class="text-muted small mb-0">Evaluate student behavioral and coursework metrics through trained classification pipelines.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('predictions.simulator') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-sliders2 me-1"></i> Interactive What-If Simulator
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Input Form -->
+  <div class="col-12 col-lg-6">
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-sliders2 text-primary"></i> Inference Feature Inputs</h5>
+      </div>
+      <div class="card-body-custom">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="model_name">Classification Algorithm</label>
+            {{ form.model_name(class="form-select-custom") }}
+            <div class="form-hint">Choose between Logistic Regression, Decision Tree, or Random Forest.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="student_id">Student ID (Optional - links prediction history)</label>
+            {{ form.student_id(class="form-control-custom", placeholder="e.g. STU_1001") }}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label-custom" for="attendance_rate">Attendance Rate (%)</label>
+              <div class="input-group">
+                {{ form.attendance_rate(class="form-control-custom", placeholder="0 - 100") }}
+                <span class="input-group-text input-group-text-custom">%</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom" for="study_hours_per_week">Study Hours / Week</label>
+              <div class="input-group">
+                {{ form.study_hours_per_week(class="form-control-custom", placeholder="0 - 168") }}
+                <span class="input-group-text input-group-text-custom">hrs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label-custom" for="previous_scores">Prior Exam Baseline (%)</label>
+              <div class="input-group">
+                {{ form.previous_scores(class="form-control-custom", placeholder="0 - 100") }}
+                <span class="input-group-text input-group-text-custom">%</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom" for="assignment_completion_rate">Assignment Rate (%)</label>
+              <div class="input-group">
+                {{ form.assignment_completion_rate(class="form-control-custom", placeholder="0 - 100") }}
+                <span class="input-group-text input-group-text-custom">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label-custom" for="tutoring_sessions">Tutoring Sessions</label>
+              {{ form.tutoring_sessions(class="form-control-custom", placeholder="0 - 50") }}
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom" for="sleep_hours">Sleep Hours / Night</label>
+              <div class="input-group">
+                {{ form.sleep_hours(class="form-control-custom", placeholder="0 - 24") }}
+                <span class="input-group-text input-group-text-custom">hrs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-6">
+              <label class="form-label-custom" for="extracurricular">Extracurricular Activities</label>
+              {{ form.extracurricular(class="form-select-custom") }}
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom" for="internet_access">Internet Access</label>
+              {{ form.internet_access(class="form-select-custom") }}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-indigo w-100 py-2">
+            <i class="bi bi-cpu me-2"></i> Compute Prediction & Explainability
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prediction Result & Explainability Card -->
+  <div class="col-12 col-lg-6">
+    {% if result %}
+    <div class="content-card">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-bullseye text-primary"></i> Inference Outcome</h5>
+        <span class="badge bg-secondary bg-opacity-15 text-main">{{ result.model_name }}</span>
+      </div>
+      <div class="card-body-custom">
+        <!-- Outcome Badge & Risk Level -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded mb-3 border border-subtle" style="background: var(--bg-surface);">
+          <div>
+            <div class="text-muted small">Forecasted Trajectory</div>
+            <div class="fs-3 fw-bold {% if result.predicted_outcome == 1 %}text-success{% else %}text-danger{% endif %}">
+              {{ result.outcome_label }}
+            </div>
+          </div>
+          <div>
+            {% if result.risk_category == 'Low Risk' %}
+            <span class="badge-risk badge-risk-low fs-6 py-2 px-3"><i class="bi bi-shield-check"></i> Low Risk (Safe)</span>
+            {% elif result.risk_category == 'Moderate Risk' %}
+            <span class="badge-risk badge-risk-moderate fs-6 py-2 px-3"><i class="bi bi-shield-exclamation"></i> Moderate Risk</span>
+            {% else %}
+            <span class="badge-risk badge-risk-high fs-6 py-2 px-3"><i class="bi bi-shield-x"></i> High Risk (Immediate Action)</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Probability Distribution Bar -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between small fw-bold mb-1">
+            <span class="text-success"><i class="bi bi-check-circle me-1"></i>Pass Likelihood: {{ result.pass_probability_pct }}%</span>
+            <span class="text-danger"><i class="bi bi-x-circle me-1"></i>Fail Probability: {{ result.fail_probability_pct }}%</span>
+          </div>
+          <div class="progress" style="height: 10px; background-color: var(--border-subtle); border-radius: 9999px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ result.pass_probability_pct }}%;" aria-valuenow="{{ result.pass_probability_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ result.fail_probability_pct }}%;" aria-valuenow="{{ result.fail_probability_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+
+        <!-- Top 3 Contributing Factors -->
+        <div class="mb-4">
+          <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-diagram-3-fill me-1 text-info"></i> Top 3 Contributing Factors (Explainable AI):</h6>
+          {% if result.top_factors %}
+            <div class="d-flex flex-column gap-2">
+              {% for factor in result.top_factors %}
+              <div class="p-2 px-3 rounded border border-subtle small" style="background: var(--bg-body);">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-main">{{ factor.feature_name }}</span>
+                  {% if factor.direction == 'positive' %}
+                  <span class="badge-status badge-status-pass" style="font-size: 11px;"><i class="bi bi-arrow-up-right"></i> Positive (+{{ factor.impact_score }})</span>
+                  {% else %}
+                  <span class="badge-status badge-status-fail" style="font-size: 11px;"><i class="bi bi-arrow-down-right"></i> Risk Contributor ({{ factor.impact_score }})</span>
+                  {% endif %}
+                </div>
+                <div class="text-muted" style="font-size: 12.5px;">{{ factor.description }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Remedial Guidance -->
+        <div class="mb-4">
+          <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-lightbulb-fill me-1 text-warning"></i> Remedial Interventions:</h6>
+          <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+            {% for rec in result.interventions %}
+            <li class="p-2 px-3 rounded small text-main border-start border-3 border-info border" style="background: var(--bg-body);">
+              <i class="bi bi-arrow-right-circle text-info me-2"></i>{{ rec }}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Mandatory Advisory Disclaimer -->
+        <div class="alert alert-secondary py-2 px-3 small border-0 text-center text-muted mb-0">
+          <i class="bi bi-info-circle me-1"></i> <i>{{ result.disclaimer }}</i>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="content-card h-100 d-flex align-items-center justify-content-center text-center p-5">
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="bi bi-cpu"></i></div>
+        <div class="empty-state-title">Ready for Inference</div>
+        <p class="empty-state-desc">Input the 8 student behavioral metrics on the left and submit to view the probabilistic outcome and top contributing factors.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
