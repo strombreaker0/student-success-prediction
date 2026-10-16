@@ -12,7 +12,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 
 from flask_app.config import DevelopmentConfig, Config
-from flask_app.models import User
+from flask_app.models import User, AnonymousUser
 from src.db.connection import get_db_connection
 from src.db.init_app_db import ensure_db_initialized
 
@@ -28,6 +28,7 @@ def create_app(config_class=DevelopmentConfig):
     # Initialize extensions
     csrf.init_app(app)
     login_manager.init_app(app)
+    login_manager.anonymous_user = AnonymousUser
 
     # Configure Flask-Login
     login_manager.login_view = "auth.login"

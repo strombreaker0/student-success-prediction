@@ -7,7 +7,7 @@ and analytical chart data.
 import os
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from src.db.connection import get_db_connection
 from src.services.prediction_service import predict_student, load_artifacts
 
@@ -108,15 +108,26 @@ def simulate():
 
 
 @api_bp.route('/api/chart-data')
-@login_required
 def chart_data():
-    """Provides aggregated distributions for Chart.js dashboard visualizers."""
+    """
+    Provides aggregated distributions for Chart.js dashboard visualizers.
+    If requested by an unauthenticated visitor, demo admin, or with ?demo=1,
+    strictly confines aggregation to synthetic demo records (student_id LIKE 'STU_DEMO%').
+    """
+    is_demo = (
+        not current_user.is_authenticated
+        or (hasattr(current_user, 'is_demo_admin') and current_user.is_demo_admin())
+        or request.args.get('demo') == '1'
+    )
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+        demo_filter_where = "WHERE student_id LIKE 'STU_DEMO%'" if is_demo else ""
+        demo_filter_and = "AND student_id LIKE 'STU_DEMO%'" if is_demo else ""
 
         # 1. Outcomes
-        cursor.execute("SELECT passed, COUNT(*) FROM students GROUP BY passed;")
+        cursor.execute(f"SELECT passed, COUNT(*) FROM students {demo_filter_where} GROUP BY passed;")
         outcome_rows = cursor.fetchall()
         outcome_counts = {"Passed": 0, "Failed": 0, "Pending": 0}
         for r in outcome_rows:
@@ -128,7 +139,7 @@ def chart_data():
                 outcome_counts["Pending"] = r[1]
 
         # 2. Attendance Bins
-        cursor.execute("""
+        cursor.execute(f"""
         SELECT 
             CASE 
                 WHEN attendance_rate < 60 THEN '< 60%'
@@ -139,7 +150,7 @@ def chart_data():
             COUNT(*) as count,
             AVG(passed) as pass_rate
         FROM students
-        WHERE attendance_rate IS NOT NULL
+        WHERE attendance_rate IS NOT NULL {demo_filter_and}
         GROUP BY att_bin
         ORDER BY MIN(attendance_rate);
         """)

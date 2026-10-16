@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Analytics Dashboard (Demo) | {{ app_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb-custom d-none d-md-flex">
+  <li><a href="{{ url_for('main.demo_dashboard') }}"><i class="bi bi-house-door me-1"></i>Analytics</a></li>
+  <li class="separator"><i class="bi bi-chevron-right"></i></li>
+  <li class="active">Executive Demo Overview</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<!-- Executive Presentation Mode Welcome Banner -->
+<div class="alert alert-primary border-0 shadow-sm d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 rounded-3" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(14, 165, 233, 0.1)); border-left: 4px solid var(--primary-indigo) !important;">
+  <div class="d-flex align-items-center gap-3">
+    <div class="bg-indigo text-white p-2 rounded-3 shadow-sm d-none d-sm-block">
+      <i class="bi bi-easel2-fill fs-3 text-white"></i>
+    </div>
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold mb-0 text-indigo fs-5">Interactive Presentation Mode &bull; Safe Synthetic Cohort</h4>
+        <span class="badge bg-warning text-dark px-2 py-0.5 rounded-pill" style="font-size: 11px;">Public Demo</span>
+      </div>
+      <div class="small text-muted mt-1">
+        You are experiencing the institutional AI early-warning dashboard. For privacy and compliance, this demo operates strictly on isolated synthetic student records (IDs starting with <code>STU_DEMO</code>). Real student profiles, administrative management, and write operations are protected by authentication.
+      </div>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+    <a href="{{ url_for('predictions.predict') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-cpu me-1"></i> Run Prediction Tool
+    </a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-indigo btn-sm shadow-sm">
+      <i class="bi bi-shield-lock-fill me-1"></i> Admin Sign In
+    </a>
+  </div>
+</div>
+
+<!-- Header Info -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h3 class="fw-bold fs-4 mb-0">Executive Analytics Dashboard (Demo)</h3>
+    <p class="text-muted small mb-0">Cohort-wide supervised learning risk metrics, empirical indicators, and pedagogical intervention intelligence.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('transparency.index') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-shield-check me-1"></i> Model Transparency
+    </a>
+    <a href="{{ url_for('predictions.simulator') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-sliders2 me-1"></i> What-If Simulator
+    </a>
+  </div>
+</div>
+
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Total Demo Cohort</div>
+          <div class="stat-val">{{ metrics.total_students }}</div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>{{ metrics.passed_count }} Passed</span> &bull; 
+        <span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>{{ metrics.failed_count }} Failed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Cohort Pass Rate</div>
+          <div class="stat-val text-success">
+            {% if metrics.pass_rate is not none %}{{ metrics.pass_rate }}%{% else %}<span class="text-muted fs-4">N/A</span>{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="bi bi-award-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Empirical passing frequency</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Average Attendance</div>
+          <div class="stat-val text-info">
+            {% if metrics.avg_attendance is not none %}{{ metrics.avg_attendance }}%{% else %}<span class="text-muted fs-4">N/A</span>{% endif %}
+          </div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(6, 182, 212, 0.1); color: #0891b2;">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Institutional benchmark: 75.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <div class="stat-label">Support Required</div>
+          <div class="stat-val text-warning">{{ metrics.support_needed_count }}</div>
+        </div>
+        <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+      </div>
+      <div class="stat-subtext">
+        <span>Attendance &lt; 75% or failing marks</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Analytical Visualizers Section -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-5">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-pie-chart-fill text-primary"></i> Demo Outcome Distribution</h5>
+      </div>
+      <div class="card-body-custom d-flex flex-column align-items-center justify-content-center" style="min-height: 260px;">
+        <canvas id="outcomeChart" style="max-height: 230px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-bar-chart-fill" style="color: var(--brand-teal);"></i> Attendance Bracket vs. Pass Likelihood (Demo Cohort)</h5>
+      </div>
+      <div class="card-body-custom" style="min-height: 260px;">
+        <canvas id="attendanceChart" style="max-height: 230px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Priority Roster: Students Needing Attention Panel -->
+<div class="content-card mb-4">
+  <div class="card-header-custom">
+    <div>
+      <h5 class="card-title-custom text-danger">
+        <i class="bi bi-shield-exclamation"></i> Priority Roster: High-Risk Students (Synthetic Demo)
+      </h5>
+      <small class="text-muted">Synthetic demo students identified by supervised learning as having severe attendance deficits or low likelihood of passing.</small>
+    </div>
+    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" style="font-size: 11px;">
+      <i class="bi bi-shield-lock me-1"></i> Real Data Protected
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Attendance Rate</th>
+          <th>Weekly Study</th>
+          <th>Assignment Rate</th>
+          <th>Prior Score</th>
+          <th>Exam Status</th>
+          <th class="text-end">Interactive Simulation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in needs_attention %}
+        <tr>
+          <td class="fw-bold">
+            <span class="text-primary font-monospace">{{ s.student_id }}</span>
+            <span class="badge bg-light text-muted border ms-1" style="font-size: 10px;">Synthetic</span>
+          </td>
+          <td>
+            {% if s.attendance_rate is not none %}
+              <span class="badge-status {% if s.attendance_rate < 75.0 %}badge-status-fail{% else %}badge-status-pass{% endif %}">
+                <i class="bi {% if s.attendance_rate < 75.0 %}bi-arrow-down-circle{% else %}bi-check-circle{% endif %}"></i>
+                {{ s.attendance_rate }}%
+              </span>
+            {% else %}
+              <span class="badge bg-secondary bg-opacity-15 text-secondary">Not Recorded</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.study_hours_per_week is not none %}
+              {{ s.study_hours_per_week }} hrs/wk
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.assignment_completion_rate is not none %}
+              {{ s.assignment_completion_rate }}%
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.previous_scores is not none %}
+              {{ s.previous_scores }}%
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.passed == 1 %}
+            <span class="badge-status badge-status-pass"><i class="bi bi-check2"></i> Passed</span>
+            {% elif s.passed == 0 %}
+            <span class="badge-status badge-status-fail"><i class="bi bi-x-circle"></i> Failed</span>
+            {% else %}
+            <span class="badge-status badge-status-pending"><i class="bi bi-hourglass-split"></i> In Progress</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('predictions.simulator', attendance_rate=s.attendance_rate, study_hours_per_week=s.study_hours_per_week, previous_scores=s.previous_scores, assignment_completion_rate=s.assignment_completion_rate) }}" class="btn btn-outline-custom btn-sm py-1" title="Test remedial interventions in What-If Simulator">
+              <i class="bi bi-sliders2 me-1"></i> Simulate
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            <i class="bi bi-check2-circle text-success fs-3 d-block mb-2"></i>
+            <div class="fw-semibold">All synthetic demo students meet institutional benchmarks.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Architecture & Governance Callout -->
+<div class="row g-4">
+  <div class="col-12 col-md-6">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-cpu-fill text-indigo"></i> Supervised Machine Learning Models</h5>
+      </div>
+      <div class="card-body-custom">
+        <p class="text-muted small mb-3">
+          This system was developed as a S.Y. B.Sc. Computer Science field project by <b>Asmita Chandram Kumbar</b> (Roll No: SI1161). It employs three complementary algorithms trained on 8 academic behavioral indicators:
+        </p>
+        <ul class="list-unstyled small mb-0">
+          <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><b>Logistic Regression</b> &bull; Baseline probabilistic classification with calibrated odds ratios.</li>
+          <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><b>Decision Tree</b> &bull; Intuitive rule-based segmentation with explainable thresholds.</li>
+          <li class="mb-0"><i class="bi bi-check2-circle text-success me-2"></i><b>Random Forest (Ensemble)</b> &bull; Robust bagging classifier mitigating variance and overfitting.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="content-card h-100">
+      <div class="card-header-custom">
+        <h5 class="card-title-custom"><i class="bi bi-shield-check text-success"></i> Security & Role-Based Access Isolation</h5>
+      </div>
+      <div class="card-body-custom">
+        <p class="text-muted small mb-3">
+          Institutional student confidentiality is enforced through multi-layered server-side access controls:
+        </p>
+        <ul class="list-unstyled small mb-3">
+          <li class="mb-2"><i class="bi bi-lock-fill text-primary me-2"></i><b>Zero Production Data Exposure:</b> Public presentation mode only queries synthetic records.</li>
+          <li class="mb-2"><i class="bi bi-key-fill text-primary me-2"></i><b>Password Security:</b> Cryptographically hashed with PBKDF2/SHA-256 (16-byte random salt).</li>
+          <li class="mb-0"><i class="bi bi-person-fill-lock text-primary me-2"></i><b>Protected Write Operations:</b> Add, edit, delete, and bulk CSV uploads require authenticated admin authorization.</li>
+        </ul>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-indigo btn-sm w-100">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Access Full Administrative Features
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  function getThemeColors() {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    return {
+      textColor: isDark ? "#94a3b8" : "#64748b",
+      gridColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"
+    };
+  }
+
+  let outcomeChart = null;
+  let attendanceChart = null;
+
+  function renderCharts() {
+    fetch('/api/chart-data?demo=1')
+      .then(r => r.json())
+      .then(data => {
+        const colors = getThemeColors();
+
+        // 1. Outcome Doughnut Chart
+        const ctxOutcome = document.getElementById('outcomeChart');
+        if (ctxOutcome && data.outcomes) {
+          if (outcomeChart) outcomeChart.destroy();
+          const hasData = (data.outcomes.Passed + data.outcomes.Failed) > 0;
+          outcomeChart = new Chart(ctxOutcome, {
+            type: 'doughnut',
+            data: {
+              labels: hasData ? ['Passed', 'Failed'] : ['No Data Recorded'],
+              datasets: [{
+                data: hasData ? [data.outcomes.Passed, data.outcomes.Failed] : [1],
+                backgroundColor: hasData ? ['#10b981', '#ef4444'] : ['#94a3b8'],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { color: colors.textColor, padding: 16 } }
+              }
+            }
+          });
+        }
+
+        // 2. Attendance Bar Chart
+        const ctxAtt = document.getElementById('attendanceChart');
+        if (ctxAtt && data.attendance_bins) {
+          if (attendanceChart) attendanceChart.destroy();
+          attendanceChart = new Chart(ctxAtt, {
+            type: 'bar',
+            data: {
+              labels: data.attendance_bins.map(b => b.bin),
+              datasets: [{
+                label: 'Pass Rate (%)',
+                data: data.attendance_bins.map(b => b.pass_rate),
+                backgroundColor: '#4f46e5',
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: { beginAtZero: true, max: 100, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
+                x: { ticks: { color: colors.textColor }, grid: { display: false } }
+              },
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        }
+      });
+  }
+
+  renderCharts();
+  window.addEventListener("themeChanged", renderCharts);
+});
+</script>
+{% endblock %}

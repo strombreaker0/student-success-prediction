@@ -23,11 +23,11 @@
   {% block head %}{% endblock %}
 </head>
 <body>
-  {% if current_user.is_authenticated %}
+  {% if current_user.is_authenticated or is_demo_dashboard %}
   <div class="app-wrapper">
     <!-- Deep Navy Authoritative Sidebar -->
     <aside class="app-sidebar">
-      <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand">
+      <a href="{{ url_for('main.demo_dashboard' if is_demo_dashboard and not current_user.is_authenticated else 'main.dashboard') }}" class="sidebar-brand">
         <div class="brand-icon"><i class="bi bi-mortarboard-fill"></i></div>
         <div class="brand-title">
           <div>Student Success</div>
@@ -38,7 +38,18 @@
       <div class="sidebar-nav-container">
         <ul class="sidebar-nav">
           <li class="sidebar-nav-heading">Academic Analytics</li>
-          {% if current_user.can_manage_students() %}
+          {% if is_demo_dashboard and not current_user.is_authenticated %}
+          <li class="nav-item">
+            <a href="{{ url_for('main.demo_dashboard') }}" class="nav-link-custom active">
+              <i class="bi bi-grid-1x2-fill"></i> <span>Executive Demo</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('auth.login') }}" class="nav-link-custom text-muted" title="Requires Administrator Credentials">
+              <i class="bi bi-lock-fill"></i> <span>Student Directory</span> <span class="badge bg-secondary-subtle text-secondary ms-auto" style="font-size: 9px;">Locked</span>
+            </a>
+          </li>
+          {% elif current_user.can_manage_students() %}
           <li class="nav-item">
             <a href="{{ url_for('main.dashboard') }}" class="nav-link-custom {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
               <i class="bi bi-grid-1x2-fill"></i> <span>Executive Dashboard</span>
@@ -81,19 +92,19 @@
           {% endif %}
 
           <li class="sidebar-nav-heading">Intervention & Governance</li>
+          {% if current_user.is_authenticated %}
           <li class="nav-item">
             <a href="{{ url_for('interventions.index') }}" class="nav-link-custom {% if request.blueprint == 'interventions' %}active{% endif %}">
               <i class="bi bi-clipboard2-pulse-fill"></i> <span>Remedial Action Plans</span>
             </a>
           </li>
+          {% endif %}
 
-          {% if current_user.can_manage_students() %}
           <li class="nav-item">
             <a href="{{ url_for('transparency.index') }}" class="nav-link-custom {% if request.endpoint == 'transparency.index' %}active{% endif %}">
               <i class="bi bi-shield-check"></i> <span>Model Transparency</span>
             </a>
           </li>
-          {% endif %}
 
           <li class="nav-item">
             <a href="{{ url_for('transparency.about') }}" class="nav-link-custom {% if request.endpoint == 'transparency.about' %}active{% endif %}">
@@ -112,6 +123,7 @@
       </div>
 
       <!-- User Profile & Sign Out Widget -->
+      {% if current_user.is_authenticated %}
       <div class="sidebar-user">
         <div class="d-flex align-items-center justify-content-between mb-2">
           <div class="overflow-hidden">
@@ -127,6 +139,20 @@
           </button>
         </form>
       </div>
+      {% else %}
+      <div class="sidebar-user" style="background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(79, 70, 229, 0.3);">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="overflow-hidden">
+            <div class="fw-bold text-white text-truncate" style="font-size: 13px;">Presentation Demo</div>
+            <div class="text-white-50 text-truncate" style="font-size: 11px;">Synthetic Cohort View</div>
+          </div>
+          <span class="badge bg-warning text-dark px-2 py-0.5 rounded-pill" style="font-size: 10px;">Demo</span>
+        </div>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-indigo w-100 py-1" style="font-size: 12px;">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Admin Sign In
+        </a>
+      </div>
+      {% endif %}
 
       <!-- Candidate Credentials Subtitle -->
       <div class="sidebar-footer">
@@ -148,7 +174,7 @@
           <div class="position-relative d-none d-sm-block" style="width: 320px;">
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
-              <input type="text" id="global-search-input" class="form-control-custom form-control-sm border-start-0" placeholder="Quick find student ID..." autocomplete="off">
+              <input type="text" id="global-search-input" class="form-control-custom form-control-sm border-start-0" placeholder="{% if is_demo_dashboard and not current_user.is_authenticated %}Quick find demo student ID...{% else %}Quick find student ID...{% endif %}" autocomplete="off">
             </div>
             <div id="search-results-dropdown" class="dropdown-menu shadow-lg w-100 mt-1" style="display: none; position: absolute; z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
           </div>
@@ -163,13 +189,25 @@
             <i id="theme-icon" class="bi bi-moon-stars-fill"></i>
           </button>
 
-          <!-- User Menu Dropdown -->
+          <!-- User Menu Dropdown or Sign In CTA -->
+          {% if current_user.is_authenticated %}
           <div class="dropdown">
             <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-2">
               <i class="bi bi-person-circle fs-6"></i>
               <span class="d-none d-md-inline fw-semibold">{{ current_user.full_name }}</span>
             </a>
           </div>
+          {% else %}
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-none d-md-inline-block px-2 py-1 rounded-pill" style="font-size: 11px;">
+              <i class="bi bi-shield-check me-1"></i> Safe Demo Mode
+            </span>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-indigo btn-sm d-flex align-items-center gap-1 shadow-sm">
+              <i class="bi bi-box-arrow-in-right"></i>
+              <span>Admin Sign In</span>
+            </a>
+          </div>
+          {% endif %}
         </div>
       </header>
 

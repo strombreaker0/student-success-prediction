@@ -3,7 +3,7 @@ Flask-Login User Model and SQLite database wrappers.
 Wraps the existing 'users' SQLite table for role-based session management.
 """
 
-from flask_login import UserMixin
+from flask_login import UserMixin, AnonymousUserMixin
 from src.db.connection import get_db_connection
 
 
@@ -174,3 +174,125 @@ class User(UserMixin):
         finally:
             if close_conn:
                 conn.close()
+
+
+class AnonymousUser(AnonymousUserMixin):
+    """
+    Custom anonymous user providing safe defaults for templates and role checks.
+    """
+    id = None
+    username = "visitor"
+    email = ""
+    role = "visitor"
+    full_name = "Presentation Guest"
+    linked_student_id = None
+
+    def is_admin(self) -> bool:
+        return False
+
+    def is_faculty(self) -> bool:
+        return False
+
+    def is_student(self) -> bool:
+        return False
+
+    def is_demo_admin(self) -> bool:
+        return False
+
+    def is_demo_student(self) -> bool:
+        return False
+
+    def can_view_student(self, student_id: str) -> bool:
+        return False
+
+    def can_modify_student(self, student_id: str) -> bool:
+        return False
+
+    def can_delete_student_record(self, student_id: str) -> bool:
+        return False
+
+    def can_manage_students(self) -> bool:
+        return False
+
+    def can_delete_students(self) -> bool:
+        return False
+
+    def can_manage_users(self) -> bool:
+        return False
+
+    def to_dict(self) -> dict:
+        return {
+            "id": None,
+            "username": "visitor",
+            "email": "",
+            "role": "visitor",
+            "full_name": "Presentation Guest",
+            "linked_student_id": None,
+            "is_active": 0,
+            "last_login": None,
+            "is_demo_admin": False,
+            "is_demo_student": False
+        }
+
+
+class DemoAdminPersona:
+    """
+    Read-only presentation persona representing the Institutional Demo Administrator.
+    Used for safe public presentation mode without bypassing authentic admin accounts.
+    """
+    id = 0
+    username = "demo_admin"
+    email = "demo.admin@institution.edu"
+    role = "admin"
+    full_name = "Institutional Demo Administrator"
+    linked_student_id = None
+    is_active = True
+    is_authenticated = False
+    is_anonymous = True
+
+    def is_admin(self) -> bool:
+        return True
+
+    def is_faculty(self) -> bool:
+        return True
+
+    def is_student(self) -> bool:
+        return False
+
+    def is_demo_admin(self) -> bool:
+        return True
+
+    def is_demo_student(self) -> bool:
+        return False
+
+    def can_view_student(self, student_id: str) -> bool:
+        return str(student_id).strip().upper().startswith("STU_DEMO")
+
+    def can_modify_student(self, student_id: str) -> bool:
+        return False  # Strictly read-only in public presentation mode
+
+    def can_delete_student_record(self, student_id: str) -> bool:
+        return False  # Strictly read-only in public presentation mode
+
+    def can_manage_students(self) -> bool:
+        return True
+
+    def can_delete_students(self) -> bool:
+        return False
+
+    def can_manage_users(self) -> bool:
+        return False
+
+    def to_dict(self) -> dict:
+        return {
+            "id": 0,
+            "username": "demo_admin",
+            "email": "demo.admin@institution.edu",
+            "role": "admin",
+            "full_name": "Institutional Demo Administrator",
+            "linked_student_id": None,
+            "is_active": 1,
+            "last_login": None,
+            "is_demo_admin": True,
+            "is_demo_student": False
+        }
