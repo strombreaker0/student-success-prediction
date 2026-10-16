@@ -139,6 +139,9 @@ def detail(student_id):
 @no_cache
 def edit(student_id):
     clean_id = str(student_id).strip().upper()
+    if not current_user.can_modify_student(clean_id):
+        abort(403)
+
     student = get_student_by_id(clean_id, requesting_user=current_user.to_dict())
     if not student:
         abort(404)
@@ -193,6 +196,9 @@ def edit(student_id):
 @admin_required
 def delete(student_id):
     clean_id = str(student_id).strip().upper()
+    if not current_user.can_delete_student_record(clean_id):
+        abort(403)
+
     ok, msg = delete_student(clean_id, requesting_user=current_user.to_dict())
     if ok:
         log_audit_event(
@@ -297,6 +303,10 @@ def bulk_upload():
             sid = str(r.get('student_id', '')).strip().upper()
             if not sid:
                 validation_errors.append(f"Row {row_idx}: Missing student_id.")
+                continue
+
+            if current_user.is_demo_admin() and not sid.startswith("STU_DEMO"):
+                validation_errors.append(f"Row {row_idx} ({sid}): Demo Administrator cannot import or modify non-demo records (must begin with STU_DEMO).")
                 continue
 
             try:

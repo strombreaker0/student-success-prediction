@@ -356,8 +356,8 @@ def predict_student(
     return result
 
 
-def get_prediction_history(student_id: str = None, limit: int = 50, conn = None) -> list[dict]:
-    """Fetches recent prediction history, optionally filtered by student_id."""
+def get_prediction_history(student_id: str = None, limit: int = 50, conn = None, requesting_user: dict | None = None) -> list[dict]:
+    """Fetches recent prediction history, optionally filtered by student_id and scoped for demo users."""
     close_conn = False
     if conn is None:
         conn = get_db_connection()
@@ -365,7 +365,10 @@ def get_prediction_history(student_id: str = None, limit: int = 50, conn = None)
 
     try:
         cursor = conn.cursor()
+        is_demo = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
         if student_id:
+            if is_demo and not str(student_id).strip().upper().startswith("STU_DEMO"):
+                return []
             cursor.execute("""
             SELECT id, student_id, model_name, predicted_outcome, pass_probability,
                    fail_probability, risk_category, interventions_json, top_factors_json, predicted_by, created_at
@@ -374,6 +377,15 @@ def get_prediction_history(student_id: str = None, limit: int = 50, conn = None)
             ORDER BY created_at DESC
             LIMIT ?;
             """, (student_id.strip().upper(), limit))
+        elif is_demo:
+            cursor.execute("""
+            SELECT id, student_id, model_name, predicted_outcome, pass_probability,
+                   fail_probability, risk_category, interventions_json, top_factors_json, predicted_by, created_at
+            FROM prediction_history
+            WHERE student_id LIKE 'STU_DEMO%'
+            ORDER BY created_at DESC
+            LIMIT ?;
+            """, (limit,))
         else:
             cursor.execute("""
             SELECT id, student_id, model_name, predicted_outcome, pass_probability,

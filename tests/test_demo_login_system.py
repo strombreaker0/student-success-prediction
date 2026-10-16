@@ -193,3 +193,104 @@ def test_09_csrf_protection_enforced_on_demo_login(csrf_client, provisioned_demo
     """9. When CSRF is enabled, demo-login POST requests without token are rejected with 400 Bad Request."""
     res = csrf_client.post('/demo-login', data={'demo_role': 'admin'}, follow_redirects=True)
     assert res.status_code == 400
+
+
+def test_10_demo_admin_cannot_view_modify_or_delete_real_students(client, provisioned_demo):
+    """10. Demo admin cannot view, edit, or delete real production student records."""
+    # Sign in as demo admin
+    res = client.post('/demo-login', data={'demo_role': 'admin'}, follow_redirects=True)
+    assert res.status_code == 200
+
+    # View real student record -> 403 Forbidden
+    res_view = client.get('/students/STU_1001')
+    assert res_view.status_code == 403
+
+    # Edit form for real student record -> 403 Forbidden
+    res_edit_get = client.get('/students/STU_1001/edit')
+    assert res_edit_get.status_code == 403
+
+    # Submit edit to real student record -> 403 Forbidden
+    res_edit_post = client.post('/students/STU_1001/edit', data={
+        'student_id': 'STU_1001',
+        'attendance_rate': 99.0,
+        'study_hours_per_week': 20.0,
+        'previous_scores': 85.0,
+        'assignment_completion_rate': 95.0,
+        'tutoring_sessions': 1,
+        'sleep_hours': 8.0,
+        'extracurricular': '1',
+        'internet_access': '1'
+    })
+    assert res_edit_post.status_code == 403
+
+    # Delete real student record -> 403 Forbidden
+    res_delete = client.post('/students/STU_1001/delete')
+    assert res_delete.status_code == 403
+
+
+def test_11_demo_admin_can_manage_synthetic_demo_records(client, provisioned_demo):
+    """11. Demo admin can view and manage synthetic demo records (STU_DEMO*)."""
+    # Sign in as demo admin
+    client.post('/demo-login', data={'demo_role': 'admin'}, follow_redirects=True)
+
+    # Can view synthetic demo student profile
+    res_view = client.get('/students/STU_DEMO01')
+    assert res_view.status_code == 200
+    assert "STU_DEMO01" in res_view.get_data(as_text=True)
+
+    # Can load edit form for synthetic demo student
+    res_edit_get = client.get('/students/STU_DEMO02/edit')
+    assert res_edit_get.status_code == 200
+
+    # Can delete synthetic demo student
+    res_delete = client.post('/students/STU_DEMO05/delete', follow_redirects=True)
+    assert res_delete.status_code == 200
+    html_delete = res_delete.get_data(as_text=True)
+    assert "was deleted" in html_delete
+    assert "STU_DEMO05" in html_delete
+
+
+def test_12_enable_demo_login_disabled(client, provisioned_demo):
+    """12. Disabling ENABLE_DEMO_LOGIN hides UI buttons and blocks demo login endpoint."""
+    app, _ = provisioned_demo
+    app.config["ENABLE_DEMO_LOGIN"] = False
+
+    try:
+        # Check login page does not display demo buttons
+        res_page = client.get('/login')
+        assert res_page.status_code == 200
+        html = res_page.get_data(as_text=True)
+        assert "Continue as Admin Demo" not in html
+        assert "Continue as Student Demo" not in html
+
+        # Direct POST to demo-login is rejected
+        res_post = client.post('/demo-login', data={'demo_role': 'admin'}, follow_redirects=True)
+        assert res_post.status_code == 200
+        assert "Demo login is currently disabled" in res_post.get_data(as_text=True)
+    finally:
+        app.config["ENABLE_DEMO_LOGIN"] = True
+
+
+def test_13_demo_admin_dashboard_and_search_scoping(client, provisioned_demo):
+    """13. Demo admin dashboard and global search are scoped strictly to synthetic demo records."""
+    client.post('/demo-login', data={'demo_role': 'admin'}, follow_redirects=True)
+
+    # Dashboard loads cleanly
+    res_dash = client.get('/dashboard')
+    assert res_dash.status_code == 200
+    dash_html = res_dash.get_data(as_text=True)
+    # Real students must not appear in "needs attention" or recent predictions
+    assert "STU_1001" not in dash_html
+    assert "STU_1002" not in dash_html
+
+    # Search for real student returns empty list
+    res_search_real = client.get('/search?q=STU_1001')
+    assert res_search_real.status_code == 200
+    assert res_search_real.get_json() == []
+
+    # Search for demo student returns matching synthetic record
+    res_search_demo = client.get('/search?q=DEMO')
+    assert res_search_demo.status_code == 200
+    demo_results = res_search_demo.get_json()
+    assert len(demo_results) > 0
+    assert any("STU_DEMO" in item["label"] for item in demo_results)

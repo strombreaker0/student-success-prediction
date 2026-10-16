@@ -27,6 +27,9 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # Valid for session lifetime
 
+    # Demonstration Mode & One-Click Demo Access
+    ENABLE_DEMO_LOGIN = os.environ.get("ENABLE_DEMO_LOGIN", "1").lower() in ("1", "true", "yes")
+
     # Application details
     APP_NAME = "AI-Based Student Academic Success Prediction System"
     CANDIDATE_NAME = "Asmita Chandram Kumbar"

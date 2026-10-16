@@ -391,17 +391,20 @@ def refresh_session_activity(session_dict: dict) -> None:
 def can_view_student(user: dict | None, student_id: str) -> bool:
     """
     Authorizes viewing of student records:
-    - Admin: can view any student.
-    - Faculty: can view any student.
+    - Demo Admin: can ONLY view synthetic demo students (STU_DEMO*), never real cohort data.
+    - Regular Admin/Faculty: can view any student.
     - Student: can ONLY view their own profile where student_id == linked_student_id.
     """
     if not user:
         return False
+    clean_id = str(student_id).strip().upper()
+    if user.get("is_demo_admin") or str(user.get("username", "")).strip().lower() == "demo_admin":
+        return clean_id.startswith("STU_DEMO")
     role = user.get("role")
     if role in ("admin", "faculty"):
         return True
     if role == "student":
-        return str(user.get("linked_student_id", "")).strip().upper() == str(student_id).strip().upper()
+        return str(user.get("linked_student_id", "")).strip().upper() == clean_id
     return False
 
 
@@ -412,11 +415,15 @@ def can_manage_students(user: dict | None) -> bool:
     return user.get("role") in ("admin", "faculty")
 
 
-def can_delete_student(user: dict | None) -> bool:
-    """Authorizes student record deletion: Administrator only."""
+def can_delete_student(user: dict | None, student_id: str | None = None) -> bool:
+    """Authorizes student record deletion: Administrator only. Demo admin cannot delete production records."""
     if not user:
         return False
-    return user.get("role") == "admin"
+    if user.get("role") != "admin":
+        return False
+    if student_id and (user.get("is_demo_admin") or str(user.get("username", "")).strip().lower() == "demo_admin"):
+        return str(student_id).strip().upper().startswith("STU_DEMO")
+    return True
 
 
 def can_manage_users(user: dict | None) -> bool:

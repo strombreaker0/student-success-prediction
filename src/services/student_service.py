@@ -125,13 +125,20 @@ def list_students(
         conditions = []
         params = []
 
-        # Enforce student role isolation
+        # Enforce role isolation
         if requesting_user and requesting_user.get("role") == "student":
             sid = requesting_user.get("linked_student_id")
             if not sid:
                 return [], 0
             conditions.append("student_id = ?")
             params.append(sid.strip().upper())
+        elif requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin"):
+            # Demo admin must never expose real student records; scope strictly to synthetic demo records
+            conditions.append("student_id LIKE 'STU_DEMO%'")
+            if search_query and search_query.strip():
+                clean_q = f"%{search_query.strip().upper()}%"
+                conditions.append("student_id LIKE ?")
+                params.append(clean_q)
         else:
             # Search query
             if search_query and search_query.strip():
@@ -177,6 +184,10 @@ def add_student(data: dict, requesting_user: dict | None = None, conn = None) ->
     """Adds a new student record after validation and authorization."""
     if requesting_user and not can_manage_students(requesting_user):
         return False, "Permission denied: Only Admin or Faculty can add student records.", None
+
+    is_demo = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
+    if is_demo and not str(data.get("student_id", "")).strip().upper().startswith("STU_DEMO"):
+        return False, "Permission denied: Demo Administrator can only create synthetic demo records (ID starting with STU_DEMO).", None
 
     close_conn = False
     if conn is None:
@@ -235,6 +246,10 @@ def update_student(student_id: str, data: dict, requesting_user: dict | None = N
         return False, "Permission denied: Only Admin or Faculty can edit student records.", None
 
     clean_id = student_id.strip().upper()
+    is_demo = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
+    if is_demo and not clean_id.startswith("STU_DEMO"):
+        return False, "Permission denied: Demo Administrator cannot modify real student records.", None
+
     close_conn = False
     if conn is None:
         conn = get_db_connection()
@@ -302,10 +317,10 @@ def update_student(student_id: str, data: dict, requesting_user: dict | None = N
 
 def delete_student(student_id: str, requesting_user: dict | None = None, conn = None) -> tuple[bool, str]:
     """Deletes a student record. Requires Administrator permission."""
-    if requesting_user and not can_delete_student(requesting_user):
-        return False, "Permission denied: Only an Administrator can delete student records."
-
     clean_id = student_id.strip().upper()
+    if requesting_user and not can_delete_student(requesting_user, clean_id):
+        return False, "Permission denied: Only an Administrator can delete student records (Demo Admin cannot delete real student records)."
+
     close_conn = False
     if conn is None:
         conn = get_db_connection()
@@ -338,10 +353,11 @@ def export_students_to_csv(search_query: str = "", outcome_filter: str = "All", 
     return df.to_csv(index=False)
 
 
-def get_dashboard_summary_metrics(conn = None) -> dict:
+def get_dashboard_summary_metrics(conn = None, requesting_user: dict | None = None) -> dict:
     """
     Computes key performance indicators from the database.
     Separates historical actual results from predictions.
+    If requesting_user is demo admin, calculates metrics strictly over synthetic demo records.
     """
     close_conn = False
     if conn is None:
@@ -350,28 +366,31 @@ def get_dashboard_summary_metrics(conn = None) -> dict:
 
     try:
         cursor = conn.cursor()
+        is_demo = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
+        demo_filter = "WHERE student_id LIKE 'STU_DEMO%'" if is_demo else ""
+        demo_and = "AND student_id LIKE 'STU_DEMO%'" if is_demo else ""
 
         # Total counts
-        cursor.execute("SELECT COUNT(*) FROM students;")
+        cursor.execute(f"SELECT COUNT(*) FROM students {demo_filter};")
         total_students = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM students WHERE passed = 1;")
+        cursor.execute(f"SELECT COUNT(*) FROM students WHERE passed = 1 {demo_and};")
         passed_count = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM students WHERE passed = 0;")
+        cursor.execute(f"SELECT COUNT(*) FROM students WHERE passed = 0 {demo_and};")
         failed_count = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM students WHERE passed IS NULL;")
+        cursor.execute(f"SELECT COUNT(*) FROM students WHERE passed IS NULL {demo_and};")
         unrecorded_count = cursor.fetchone()[0]
 
         # Averages
-        cursor.execute("""
+        cursor.execute(f"""
         SELECT
             AVG(attendance_rate) as avg_attendance,
             AVG(study_hours_per_week) as avg_study,
             AVG(previous_scores) as avg_prev_score,
             AVG(assignment_completion_rate) as avg_assignment
-        FROM students;
+        FROM students {demo_filter};
         """)
         row_avg = cursor.fetchone()
 
@@ -381,9 +400,9 @@ def get_dashboard_summary_metrics(conn = None) -> dict:
         avg_assignment = round(row_avg["avg_assignment"], 1) if row_avg["avg_assignment"] is not None else None
 
         # Students requiring academic support: Attendance < 75% OR Failed
-        cursor.execute("""
+        cursor.execute(f"""
         SELECT COUNT(DISTINCT student_id) FROM students
-        WHERE (attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0;
+        WHERE ((attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0) {demo_and};
         """)
         support_needed_count = cursor.fetchone()[0]
 

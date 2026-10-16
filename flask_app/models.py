@@ -37,18 +37,49 @@ class User(UserMixin):
     def is_student(self):
         return self.role == "student"
 
+    def is_demo_admin(self) -> bool:
+        """Identifies if active user is the Demo Admin persona."""
+        import os
+        adm = os.environ.get("DEMO_ADMIN_USERNAME", "demo_admin").strip().lower()
+        return self.username.strip().lower() == adm
+
+    def is_demo_student(self) -> bool:
+        """Identifies if active user is the Demo Student persona."""
+        import os
+        stu = os.environ.get("DEMO_STUDENT_USERNAME", "demo_student").strip().lower()
+        return self.username.strip().lower() == stu
+
     def can_view_student(self, student_id: str) -> bool:
         """
-        Prevents IDOR: Students can only view their own linked student profile.
-        Admins and Faculty can view any student profile.
+        Prevents IDOR and protects real data:
+        - Students can only view their own linked student profile.
+        - Demo Admin can only view synthetic demo student records (STU_DEMO*), never real cohort data.
+        - Regular Admins and Faculty can view any student profile.
         """
+        clean_id = str(student_id).strip().upper()
+        if self.is_demo_admin():
+            return clean_id.startswith("STU_DEMO")
         if self.is_admin() or self.role == "faculty":
             return True
         if self.is_student():
             if not self.linked_student_id:
                 return False
-            return str(self.linked_student_id).strip().upper() == str(student_id).strip().upper()
+            return str(self.linked_student_id).strip().upper() == clean_id
         return False
+
+    def can_modify_student(self, student_id: str) -> bool:
+        """Demo Admin cannot modify real production student records."""
+        clean_id = str(student_id).strip().upper()
+        if self.is_demo_admin():
+            return clean_id.startswith("STU_DEMO")
+        return self.role in ("admin", "faculty")
+
+    def can_delete_student_record(self, student_id: str) -> bool:
+        """Demo Admin cannot delete real production student records."""
+        clean_id = str(student_id).strip().upper()
+        if self.is_demo_admin():
+            return clean_id.startswith("STU_DEMO")
+        return self.is_admin()
 
     def can_manage_students(self) -> bool:
         """Only admins and faculty can add/edit student records."""
@@ -71,7 +102,9 @@ class User(UserMixin):
             "full_name": self.full_name,
             "linked_student_id": self.linked_student_id,
             "is_active": int(self._is_active),
-            "last_login": self.last_login
+            "last_login": self.last_login,
+            "is_demo_admin": self.is_demo_admin(),
+            "is_demo_student": self.is_demo_student()
         }
 
     @classmethod

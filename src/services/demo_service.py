@@ -25,9 +25,78 @@ DEMO_STUDENT_NAME = os.environ.get("DEMO_STUDENT_NAME", "Demo Student Profile").
 DEMO_STUDENT_ID = os.environ.get("DEMO_STUDENT_ID", "STU_DEMO01").strip().upper()
 
 
+SYNTHETIC_DEMO_STUDENTS = [
+    {
+        "student_id": "STU_DEMO01",
+        "attendance_rate": 88.5,
+        "study_hours_per_week": 16.0,
+        "previous_scores": 78.0,
+        "assignment_completion_rate": 86.0,
+        "tutoring_sessions": 2,
+        "sleep_hours": 7.0,
+        "extracurricular": 1,
+        "internet_access": 1,
+        "passed": 1,
+        "final_exam_score": 76.0
+    },
+    {
+        "student_id": "STU_DEMO02",
+        "attendance_rate": 54.0,
+        "study_hours_per_week": 6.5,
+        "previous_scores": 45.0,
+        "assignment_completion_rate": 58.0,
+        "tutoring_sessions": 0,
+        "sleep_hours": 5.0,
+        "extracurricular": 0,
+        "internet_access": 1,
+        "passed": 0,
+        "final_exam_score": 38.0
+    },
+    {
+        "student_id": "STU_DEMO03",
+        "attendance_rate": 72.0,
+        "study_hours_per_week": 12.0,
+        "previous_scores": 66.0,
+        "assignment_completion_rate": 74.0,
+        "tutoring_sessions": 1,
+        "sleep_hours": 6.5,
+        "extracurricular": 1,
+        "internet_access": 1,
+        "passed": 1,
+        "final_exam_score": 68.0
+    },
+    {
+        "student_id": "STU_DEMO04",
+        "attendance_rate": 96.0,
+        "study_hours_per_week": 22.0,
+        "previous_scores": 89.0,
+        "assignment_completion_rate": 96.0,
+        "tutoring_sessions": 3,
+        "sleep_hours": 8.0,
+        "extracurricular": 1,
+        "internet_access": 1,
+        "passed": 1,
+        "final_exam_score": 91.0
+    },
+    {
+        "student_id": "STU_DEMO05",
+        "attendance_rate": 48.0,
+        "study_hours_per_week": 5.0,
+        "previous_scores": 40.0,
+        "assignment_completion_rate": 50.0,
+        "tutoring_sessions": 0,
+        "sleep_hours": 5.5,
+        "extracurricular": 0,
+        "internet_access": 0,
+        "passed": 0,
+        "final_exam_score": 35.0
+    }
+]
+
+
 def ensure_demo_student_record(conn=None) -> str:
     """
-    Idempotently creates a synthetic demo student record and academic trajectory.
+    Idempotently creates a synthetic demo student cohort and academic trajectory.
     Never modifies existing real student records.
     """
     close_at_end = False
@@ -37,25 +106,13 @@ def ensure_demo_student_record(conn=None) -> str:
 
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT student_id FROM students WHERE student_id = ?;", (DEMO_STUDENT_ID,))
-        existing = cursor.fetchone()
 
-        if not existing:
-            demo_payload = {
-                "student_id": DEMO_STUDENT_ID,
-                "attendance_rate": 88.5,
-                "study_hours_per_week": 16.0,
-                "previous_scores": 78.0,
-                "assignment_completion_rate": 86.0,
-                "tutoring_sessions": 2,
-                "sleep_hours": 7.0,
-                "extracurricular": 1,
-                "internet_access": 1,
-                "passed": 1,
-                "final_exam_score": 76.0
-            }
-            add_student(demo_payload, requesting_user={"role": "admin", "username": "system"}, conn=conn)
-            logger.info(f"Synthetic demo student record '{DEMO_STUDENT_ID}' created successfully.")
+        # Seed synthetic demo cohort
+        for s in SYNTHETIC_DEMO_STUDENTS:
+            cursor.execute("SELECT student_id FROM students WHERE student_id = ?;", (s["student_id"],))
+            if not cursor.fetchone():
+                add_student(s, requesting_user={"role": "admin", "username": "system"}, conn=conn)
+                logger.info(f"Synthetic demo student record '{s['student_id']}' created successfully.")
 
         # Ensure academic year records for student portal display
         cursor.execute("SELECT id FROM academic_year_records WHERE student_id = ?;", (DEMO_STUDENT_ID,))

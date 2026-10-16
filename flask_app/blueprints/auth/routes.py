@@ -4,7 +4,7 @@ Handles login, registration, logout, and profile/password management.
 """
 
 import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from src.services.auth_service import (
     authenticate_user, register_user, verify_password, hash_password,
@@ -31,6 +31,7 @@ def login():
 
     form = LoginForm()
     demo_status = get_demo_account_status()
+    enable_demo_login = current_app.config.get("ENABLE_DEMO_LOGIN", True)
 
     if form.validate_on_submit():
         identifier = form.username_or_email.data.strip()
@@ -39,7 +40,7 @@ def login():
         if is_rate_limited(identifier):
             flash("Too many failed login attempts. Please wait 15 minutes before trying again.", "danger")
             log_audit_event(identifier, "LOGIN_RATE_LIMITED", target="auth", ip_address=get_client_ip())
-            return render_template('auth/login.html', form=form, demo_status=demo_status)
+            return render_template('auth/login.html', form=form, demo_status=demo_status, enable_demo_login=enable_demo_login)
 
         auth_ok, auth_msg, user_dict = authenticate_user(identifier, pwd)
         if auth_ok and user_dict:
@@ -60,7 +61,7 @@ def login():
         log_audit_event(identifier, "LOGIN_FAILURE", target="auth", ip_address=get_client_ip())
         flash("Invalid username/email or password.", "danger")
 
-    return render_template('auth/login.html', form=form, demo_status=demo_status)
+    return render_template('auth/login.html', form=form, demo_status=demo_status, enable_demo_login=enable_demo_login)
 
 
 @auth_bp.route('/demo-login', methods=['POST'])
@@ -72,6 +73,10 @@ def demo_login():
     """
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
+
+    if not current_app.config.get("ENABLE_DEMO_LOGIN", True):
+        flash("Demo login is currently disabled for this environment.", "warning")
+        return redirect(url_for('auth.login'))
 
     demo_role = request.form.get('demo_role', '').strip().lower()
     if demo_role not in ('admin', 'student'):

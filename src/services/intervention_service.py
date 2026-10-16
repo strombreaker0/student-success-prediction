@@ -177,12 +177,21 @@ def list_interventions(
         params = []
 
         # Role enforcement
+        is_demo_admin = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
         if requesting_user and requesting_user.get("role") == "student":
             linked_id = requesting_user.get("linked_student_id")
             if not linked_id:
                 return [], 0
             where_clauses.append("student_id = ?")
             params.append(linked_id)
+        elif is_demo_admin:
+            if student_id:
+                if not str(student_id).strip().upper().startswith("STU_DEMO"):
+                    return [], 0
+                where_clauses.append("student_id = ?")
+                params.append(str(student_id).strip().upper())
+            else:
+                where_clauses.append("student_id LIKE 'STU_DEMO%'")
         elif student_id:
             where_clauses.append("student_id = ?")
             params.append(str(student_id).strip().upper())
@@ -241,10 +250,13 @@ def get_overdue_interventions(requesting_user: dict = None, conn = None) -> list
         where_clauses = ["status != 'Resolved'", "follow_up_date IS NOT NULL", "follow_up_date < ?"]
         params = [today_str]
 
+        is_demo_admin = requesting_user and (requesting_user.get("is_demo_admin") or str(requesting_user.get("username", "")).strip().lower() == "demo_admin")
         if requesting_user and requesting_user.get("role") == "student":
             linked_id = requesting_user.get("linked_student_id")
             where_clauses.append("student_id = ?")
             params.append(linked_id or "")
+        elif is_demo_admin:
+            where_clauses.append("student_id LIKE 'STU_DEMO%'")
 
         where_sql = f"WHERE {' AND '.join(where_clauses)}"
         cursor.execute(f"""

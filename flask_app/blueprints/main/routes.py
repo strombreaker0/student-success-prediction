@@ -37,25 +37,39 @@ def dashboard():
         )
 
     # For Faculty and Administrator: Executive Educational Analytics Dashboard
-    metrics = get_dashboard_summary_metrics()
+    metrics = get_dashboard_summary_metrics(requesting_user=current_user.to_dict())
     overdue_interventions = get_overdue_interventions(requesting_user=current_user.to_dict())
-    recent_predictions = get_prediction_history(limit=6)
+    recent_predictions = get_prediction_history(limit=6, requesting_user=current_user.to_dict())
 
     # Priority 2: "Needs attention" panel - Highest-risk students first (attendance < 75% or fail likelihood)
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-        SELECT student_id, attendance_rate, study_hours_per_week, previous_scores, 
-               assignment_completion_rate, passed, final_exam_score
-        FROM students
-        WHERE (attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0
-        ORDER BY 
-            CASE WHEN attendance_rate IS NULL THEN 1 ELSE 0 END,
-            attendance_rate ASC, 
-            study_hours_per_week ASC
-        LIMIT 10;
-        """)
+        if current_user.is_demo_admin():
+            cursor.execute("""
+            SELECT student_id, attendance_rate, study_hours_per_week, previous_scores, 
+                   assignment_completion_rate, passed, final_exam_score
+            FROM students
+            WHERE ((attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0)
+              AND student_id LIKE 'STU_DEMO%'
+            ORDER BY 
+                CASE WHEN attendance_rate IS NULL THEN 1 ELSE 0 END,
+                attendance_rate ASC, 
+                study_hours_per_week ASC
+            LIMIT 10;
+            """)
+        else:
+            cursor.execute("""
+            SELECT student_id, attendance_rate, study_hours_per_week, previous_scores, 
+                   assignment_completion_rate, passed, final_exam_score
+            FROM students
+            WHERE (attendance_rate IS NOT NULL AND attendance_rate < 75.0) OR passed = 0
+            ORDER BY 
+                CASE WHEN attendance_rate IS NULL THEN 1 ELSE 0 END,
+                attendance_rate ASC, 
+                study_hours_per_week ASC
+            LIMIT 10;
+            """)
         needs_attention = [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()
@@ -88,13 +102,22 @@ def global_search():
             return jsonify([])
 
         # Faculty / Admin search
-        cursor.execute("""
-        SELECT student_id, attendance_rate, passed
-        FROM students
-        WHERE student_id LIKE ?
-        ORDER BY student_id ASC
-        LIMIT 8;
-        """, (f"%{query.upper()}%",))
+        if current_user.is_demo_admin():
+            cursor.execute("""
+            SELECT student_id, attendance_rate, passed
+            FROM students
+            WHERE student_id LIKE ? AND student_id LIKE 'STU_DEMO%'
+            ORDER BY student_id ASC
+            LIMIT 8;
+            """, (f"%{query.upper()}%",))
+        else:
+            cursor.execute("""
+            SELECT student_id, attendance_rate, passed
+            FROM students
+            WHERE student_id LIKE ?
+            ORDER BY student_id ASC
+            LIMIT 8;
+            """, (f"%{query.upper()}%",))
         results = []
         for r in cursor.fetchall():
             results.append({
